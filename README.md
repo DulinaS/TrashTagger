@@ -158,4 +158,4 @@ Pull requests are welcome. Please open an issue first to discuss any major chang
 
 ## ✅ Status
 
-🚧 In development – MVP due by [Your Deadline Here]
+🚧 In development – MVP due by 2025 Aug
