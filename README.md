@@ -1,22 +1,3 @@
-<<<<<<< HEAD
-# trash_tagger
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-=======
-
 # 🚮 TrashTagger - Gamified Cloud Waste Reporting App
 
 TrashTagger is a mobile application built with **Flutter and Firebase** that allows users to report littered public areas, accept cleanup challenges, and earn points through gamified environmental actions. It integrates **Google Cloud Vision API** to verify trash in images and promotes eco-friendly participation via leaderboards and badges.
@@ -85,12 +66,14 @@ TrashTagger/
 ## 🔧 Setup Instructions
 
 ### 🧪 Prerequisites
+
 - Flutter installed and configured
 - Firebase project created
 - Google Cloud Vision API enabled
 - Service account JSON file created
 
 ### 🚀 Flutter Setup
+
 ```bash
 git clone https://github.com/yourusername/TrashTagger.git
 cd TrashTagger
@@ -99,6 +82,7 @@ flutter run
 ```
 
 ### 🔐 Firebase Setup
+
 - Add `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
 - Enable:
   - Firebase Authentication
@@ -106,6 +90,7 @@ flutter run
   - Cloud Storage
 
 ### 🤖 Vision API Setup
+
 - Enable Cloud Vision API in Google Cloud Console
 - Create and download service account key (`vision-key.json`)
 - Place it in your `functions/` folder and reference in `index.js`
@@ -126,28 +111,30 @@ trashReports/
 ## 🧪 Example Cloud Function (Vision API)
 
 ```javascript
-const functions = require("firebase-functions");
-const vision = require("@google-cloud/vision");
-const admin = require("firebase-admin");
+const functions = require('firebase-functions');
+const vision = require('@google-cloud/vision');
+const admin = require('firebase-admin');
 
 admin.initializeApp();
 const client = new vision.ImageAnnotatorClient({
-  keyFilename: "vision-key.json",
+  keyFilename: 'vision-key.json',
 });
 
 exports.analyzeTrashImage = functions.firestore
-  .document("trashReports/{reportId}")
+  .document('trashReports/{reportId}')
   .onCreate(async (snap, context) => {
     const data = snap.data();
     const [result] = await client.labelDetection(data.imageURL);
-    const labels = result.labelAnnotations.map(l => l.description.toLowerCase());
+    const labels = result.labelAnnotations.map((l) =>
+      l.description.toLowerCase()
+    );
 
-    const trashTags = ["garbage", "litter", "plastic", "trash", "waste"];
-    const isTrash = labels.some(label => trashTags.includes(label));
+    const trashTags = ['garbage', 'litter', 'plastic', 'trash', 'waste'];
+    const isTrash = labels.some((label) => trashTags.includes(label));
 
     await snap.ref.update({
       visionVerified: isTrash,
-      status: isTrash ? "verified" : "rejected"
+      status: isTrash ? 'verified' : 'rejected',
     });
   });
 ```
@@ -177,4 +164,5 @@ Pull requests are welcome. Please open an issue first to discuss any major chang
 ## ✅ Status
 
 🚧 In development – MVP due by 2025 Aug
->>>>>>> 6b667b9b564e86d354f953468fe742531f351b01
+
+> > > > > > > 6b667b9b564e86d354f953468fe742531f351b01

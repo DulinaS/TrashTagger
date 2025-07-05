@@ -65,4 +65,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'trashtagger-app.firebasestorage.app',
     iosBundleId: 'com.example.trashTagger',
   );
+
 }
