@@ -227,7 +227,7 @@ class UserBadgeProgress {
 }
 
 // Predefined badges for the app
-class BadgeDefinitions {
+/* class BadgeDefinitions {
   static List<BadgeModel> getDefaultBadges() {
     return [
       // Milestone badges
@@ -330,3 +330,4 @@ class BadgeDefinitions {
     ];
   }
 }
+ */

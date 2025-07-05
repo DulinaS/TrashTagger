@@ -1,15 +1,11 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'services/backend_test.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   runApp(TrashTaggerApp());
 }
 
@@ -18,80 +14,80 @@ class TrashTaggerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'TrashTagger',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: ThemeData(primarySwatch: Colors.green),
       home: BackendTestScreen(),
     );
   }
 }
 
-// Temporary test screen to verify backend connection
 class BackendTestScreen extends StatefulWidget {
   @override
   _BackendTestScreenState createState() => _BackendTestScreenState();
 }
 
 class _BackendTestScreenState extends State<BackendTestScreen> {
-  String _status = 'Ready to test backend';
+  Map<String, String> _testResults = {};
   bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('TrashTagger - Backend Test')),
-      body: Center(
+      appBar: AppBar(title: Text('TrashTagger Backend Test')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'TrashTagger Backend',
-              style: Theme.of(context).textTheme.headlineMedium,
+              'TrashTagger Backend Status',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
             SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.all(16),
-              margin: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+
+            if (_testResults.isNotEmpty) ...[
+              ...(_testResults.entries.map(
+                (entry) => Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    '${entry.key.toUpperCase()}: ${entry.value}',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              )),
+              SizedBox(height: 20),
+            ],
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _runTests,
+                child: _isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text('Test Backend'),
               ),
             ),
-            SizedBox(height: 20),
-            if (_isLoading)
-              CircularProgressIndicator()
-            else
-              ElevatedButton(
-                onPressed: _testBackend,
-                child: Text('Test Backend Connection'),
-              ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _testBackend() async {
+  Future<void> _runTests() async {
     setState(() {
       _isLoading = true;
-      _status = 'Testing backend connection...';
+      _testResults = {};
     });
 
     try {
-      // Test will be implemented in the next step
-      await Future.delayed(Duration(seconds: 1));
+      final testService = BackendTestService();
+      final results = await testService.runAllTests();
+
       setState(() {
-        _status = 'Backend connection successful!\nReady to build TrashTagger.';
+        _testResults = results;
       });
     } catch (e) {
       setState(() {
-        _status = 'Error: $e';
+        _testResults = {'error': '❌ Test failed: $e'};
       });
     } finally {
       setState(() {
