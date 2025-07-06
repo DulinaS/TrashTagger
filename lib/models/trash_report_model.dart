@@ -50,18 +50,22 @@ class TrashReportModel {
     required this.flagReasons,
   });
 
+  // lib/models/trash_report_model.dart - Fix the fromMap method
   factory TrashReportModel.fromMap(Map<String, dynamic> map) {
     return TrashReportModel(
-      id: map['id'],
-      imageURL: map['imageURL'],
-      location: map['location'],
-      address: map['address'],
-      reporterId: map['reporterId'],
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      // Use the document ID passed in, NOT the id field from the document
+      id: map['_documentId'] ?? map['id'] ?? '', // Use _documentId if available
+      imageURL: map['imageURL'] ?? '',
+      location: map['location'] ?? GeoPoint(0, 0),
+      address: map['address'] ?? '',
+      reporterId: map['reporterId'] ?? '',
+      timestamp: map['timestamp'] != null
+          ? (map['timestamp'] as Timestamp).toDate()
+          : DateTime.now(),
       status: map['status'] ?? 'pending',
       visionVerified: map['visionVerified'] ?? false,
       visionLabels: List<String>.from(map['visionLabels'] ?? []),
-      visionConfidence: map['visionConfidence']?.toDouble() ?? 0.0,
+      visionConfidence: (map['visionConfidence'] ?? 0.0).toDouble(),
       moderatorReviewed: map['moderatorReviewed'] ?? false,
       acceptedBy: map['acceptedBy'],
       acceptedAt: map['acceptedAt'] != null

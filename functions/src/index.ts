@@ -152,7 +152,7 @@ export const analyzeTrashImage = functions.firestore
 // POINTS AND BADGES FUNCTION
 // ================================
 
-export const awardPointsAndBadges = functions.firestore
+/* export const awardPointsAndBadges = functions.firestore
   .document('trashReports/{reportId}')
   .onUpdate(async (change, context) => {
     const beforeData = change.before.data();
@@ -237,6 +237,220 @@ export const awardPointsAndBadges = functions.firestore
     }
 
     return null;
+  }); */
+export const awardPointsAndBadges = functions.firestore
+  .document('trashReports/{reportId}')
+  .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    const reportId = context.params.reportId;
+
+    console.log(
+      `🔄 Report ${reportId} status changed: ${beforeData.status} → ${afterData.status}`
+    );
+
+    // Check if status changed to completed
+    if (beforeData.status !== 'completed' && afterData.status === 'completed') {
+      console.log(`🏆 Awarding points for completed report: ${reportId}`);
+
+      try {
+        const reporterId = afterData.reporterId;
+        const cleanerId = afterData.acceptedBy;
+
+        if (!reporterId || !cleanerId) {
+          console.error('❌ Missing reporterId or cleanerId');
+          return { success: false, error: 'Missing user IDs' };
+        }
+
+        // Calculate points based on severity
+        const reporterPoints = getReporterPoints(afterData.severity || 'low');
+        const cleanerPoints = getCleanerPoints(afterData.severity || 'low');
+
+        console.log(
+          `💰 Points to award: Reporter(${reporterId}): ${reporterPoints}, Cleaner(${cleanerId}): ${cleanerPoints}`
+        );
+
+        // Use transaction to ensure data consistency
+        const result = await admin
+          .firestore()
+          .runTransaction(async (transaction) => {
+            // Get user documents
+            const reporterRef = admin
+              .firestore()
+              .collection('users')
+              .doc(reporterId);
+            const cleanerRef = admin
+              .firestore()
+              .collection('users')
+              .doc(cleanerId);
+
+            const reporterDoc = await transaction.get(reporterRef);
+            const cleanerDoc = await transaction.get(cleanerRef);
+
+            if (reporterDoc.exists) {
+              const reporterData = reporterDoc.data() || {};
+              const newReporterPoints =
+                (reporterData.totalPoints || 0) + reporterPoints;
+              const newLevel = calculateLevel(newReporterPoints);
+
+              transaction.update(reporterRef, {
+                totalPoints: newReporterPoints,
+                level: newLevel,
+                'stats.monthlyPoints':
+                  admin.firestore.FieldValue.increment(reporterPoints),
+                'stats.reportsSubmitted':
+                  admin.firestore.FieldValue.increment(1),
+                lastActive: admin.firestore.FieldValue.serverTimestamp(),
+              });
+
+              console.log(
+                `✅ Updated reporter ${reporterId}: ${newReporterPoints} points, level ${newLevel}`
+              );
+            }
+
+            if (cleanerDoc.exists) {
+              const cleanerData = cleanerDoc.data() || {};
+              const newCleanerPoints =
+                (cleanerData.totalPoints || 0) + cleanerPoints;
+              const newLevel = calculateLevel(newCleanerPoints);
+
+              // Check for badges
+              const currentChallenges =
+                (cleanerData.stats?.challengesCompleted || 0) + 1;
+              const newBadges = [];
+
+              // First cleanup badge
+              if (
+                currentChallenges === 1 &&
+                !(cleanerData.badges || []).includes('first_cleanup')
+              ) {
+                newBadges.push('first_cleanup');
+              }
+
+              // Bronze cleaner badge (5 cleanups)
+              if (
+                currentChallenges === 5 &&
+                !(cleanerData.badges || []).includes('cleaner_bronze')
+              ) {
+                newBadges.push('cleaner_bronze');
+              }
+
+              // Century club badge (100 points)
+              if (
+                newCleanerPoints >= 100 &&
+                !(cleanerData.badges || []).includes('century_club')
+              ) {
+                newBadges.push('century_club');
+              }
+
+              const updateData: any = {
+                totalPoints: newCleanerPoints,
+                level: newLevel,
+                'stats.monthlyPoints':
+                  admin.firestore.FieldValue.increment(cleanerPoints),
+                'stats.challengesCompleted':
+                  admin.firestore.FieldValue.increment(1),
+                lastActive: admin.firestore.FieldValue.serverTimestamp(),
+              };
+
+              if (newBadges.length > 0) {
+                updateData.badges = admin.firestore.FieldValue.arrayUnion(
+                  ...newBadges
+                );
+                console.log(
+                  `🏅 Awarding badges to ${cleanerId}: ${newBadges.join(', ')}`
+                );
+              }
+
+              transaction.update(cleanerRef, updateData);
+              console.log(
+                `✅ Updated cleaner ${cleanerId}: ${newCleanerPoints} points, level ${newLevel}`
+              );
+            }
+
+            return { reporterPoints, cleanerPoints };
+          });
+
+        console.log(
+          `🎉 Successfully awarded points: ${JSON.stringify(result)}`
+        );
+        return { success: true, ...result };
+      } catch (error) {
+        console.error(
+          `❌ Error awarding points for report ${reportId}:`,
+          error
+        );
+        return { success: false, error: String(error) };
+      }
+    }
+
+    return null;
+  });
+// Add this NEW function for awarding badges on report creation
+export const awardReportBadges = functions.firestore
+  .document('trashReports/{reportId}')
+  .onCreate(async (snap, context) => {
+    const reportData = snap.data();
+    const reportId = context.params.reportId;
+    const reporterId = reportData.reporterId;
+
+    console.log(`🎯 New report created: ${reportId} by ${reporterId}`);
+
+    try {
+      // Get the user document
+      const userRef = admin.firestore().collection('users').doc(reporterId);
+      const userDoc = await userRef.get();
+
+      if (!userDoc.exists) {
+        console.log(`❌ User ${reporterId} not found`);
+        return;
+      }
+
+      const userData = userDoc.data() || {};
+      const currentBadges = userData.badges || [];
+      const currentStats = userData.stats || {};
+      const newBadges: string[] = [];
+
+      // Award "First Step" badge for first report
+      const totalReports = (currentStats.reportsSubmitted || 0) + 1;
+
+      if (totalReports === 1 && !currentBadges.includes('first_report')) {
+        newBadges.push('first_report');
+        console.log(`🏅 Awarding "first_report" badge to ${reporterId}`);
+      }
+
+      // Award "Bronze Reporter" badge for 10 reports
+      if (totalReports === 10 && !currentBadges.includes('reporter_bronze')) {
+        newBadges.push('reporter_bronze');
+        console.log(`🏅 Awarding "reporter_bronze" badge to ${reporterId}`);
+      }
+
+      // Update user with new badges if any
+      const updateData: any = {
+        'stats.reportsSubmitted': admin.firestore.FieldValue.increment(1),
+        lastActive: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      if (newBadges.length > 0) {
+        updateData.badges = admin.firestore.FieldValue.arrayUnion(...newBadges);
+
+        // Award points for badges
+        const badgePoints = newBadges.length * 10; // 10 points per badge
+        updateData.totalPoints =
+          admin.firestore.FieldValue.increment(badgePoints);
+
+        console.log(
+          `🎉 Awarded ${newBadges.length} badges and ${badgePoints} points to ${reporterId}`
+        );
+      }
+
+      await userRef.update(updateData);
+
+      return { success: true, badges: newBadges };
+    } catch (error) {
+      console.error(`❌ Error awarding report badges for ${reportId}:`, error);
+      return { success: false, error: String(error) };
+    }
   });
 
 // ================================

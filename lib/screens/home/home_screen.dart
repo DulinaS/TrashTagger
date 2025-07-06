@@ -57,7 +57,12 @@ class _HomeScreenState extends State<HomeScreen> {
           .get();
 
       _userReports = snapshot.docs
-          .map((doc) => TrashReportModel.fromMap({'id': doc.id, ...doc.data()}))
+          .map(
+            (doc) => TrashReportModel.fromMap({
+              '_documentId': doc.id, // Use actual document ID
+              ...doc.data(),
+            }),
+          )
           .toList();
     } catch (e) {
       print('Error loading user reports: $e');
