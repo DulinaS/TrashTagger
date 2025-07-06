@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../themes/app_theme.dart';
-import '../../widgets/common/custom_button.dart';
 import 'report_form_screen.dart';
 
 class CameraScreen extends StatefulWidget {
