@@ -1,12 +1,14 @@
-// lib/screens/home/home_screen.dart
+// lib/screens/home/home_screen.dart - Updated with real data
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/reports_provider.dart';
 import '../../themes/app_theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
+import '../../models/trash_report_model.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -14,6 +16,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _isLoadingReports = false;
+  List<TrashReportModel> _userReports = [];
+  List<TrashReportModel> _recentActivity = [];
+
   @override
   void initState() {
     super.initState();
@@ -22,13 +28,64 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _loadData() {
+  void _loadData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.user != null) {
-      Provider.of<UserProvider>(
+      // Load user profile
+      await Provider.of<UserProvider>(
         context,
         listen: false,
       ).loadCurrentUser(authProvider.user!.uid);
+
+      // Load user's reports
+      await _loadUserReports(authProvider.user!.uid);
+
+      // Load recent activity
+      await _loadRecentActivity();
+    }
+  }
+
+  Future<void> _loadUserReports(String userId) async {
+    setState(() => _isLoadingReports = true);
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('trashReports')
+          .where('reporterId', isEqualTo: userId)
+          .orderBy('timestamp', descending: true)
+          .limit(10)
+          .get();
+
+      _userReports = snapshot.docs
+          .map((doc) => TrashReportModel.fromMap({'id': doc.id, ...doc.data()}))
+          .toList();
+    } catch (e) {
+      print('Error loading user reports: $e');
+    }
+
+    setState(() => _isLoadingReports = false);
+  }
+
+  Future<void> _loadRecentActivity() async {
+    try {
+      // Get recent verified reports (last 24 hours)
+      final yesterday = DateTime.now().subtract(Duration(days: 1));
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('trashReports')
+          .where('status', isEqualTo: 'verified')
+          .where('timestamp', isGreaterThan: Timestamp.fromDate(yesterday))
+          .orderBy('timestamp', descending: true)
+          .limit(5)
+          .get();
+
+      _recentActivity = snapshot.docs
+          .map((doc) => TrashReportModel.fromMap({'id': doc.id, ...doc.data()}))
+          .toList();
+
+      setState(() {});
+    } catch (e) {
+      print('Error loading recent activity: $e');
     }
   }
 
@@ -72,6 +129,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Quick Stats
                   _buildQuickStats(user),
+                  const SizedBox(height: 24),
+
+                  // My Reports Section
+                  _buildMyReportsSection(),
                   const SizedBox(height: 24),
 
                   // Recent Activity
@@ -130,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _buildStatCard(
             'Reports',
-            user.stats.reportsSubmitted.toString(),
+            _userReports.length.toString(),
             Icons.report_outlined,
             AppTheme.infoBlue,
           ),
@@ -178,6 +239,149 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildMyReportsSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('My Reports', style: AppTheme.headlineMedium),
+                if (_userReports.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      // TODO: Navigate to full reports list
+                    },
+                    child: Text('View All'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (_isLoadingReports)
+              const Center(child: CircularProgressIndicator())
+            else if (_userReports.isEmpty)
+              _buildEmptyReports()
+            else
+              Column(
+                children: _userReports
+                    .take(3)
+                    .map((report) => _buildReportItem(report))
+                    .toList(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyReports() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.camera_alt_outlined,
+            size: 48,
+            color: AppTheme.textSecondary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No reports yet',
+            style: AppTheme.headlineMedium.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Start by reporting some trash in your area!',
+            style: AppTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportItem(TrashReportModel report) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.lightGreen.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.lightGreen),
+      ),
+      child: Row(
+        children: [
+          // Status Icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _getStatusColor(report.status),
+            ),
+            child: Icon(
+              _getStatusIcon(report.status),
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Report Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Helpers.getTrashTypeDisplayName(report.trashType),
+                  style: AppTheme.labelMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  report.address,
+                  style: AppTheme.bodyMedium.copyWith(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  Helpers.formatDateTime(report.timestamp),
+                  style: AppTheme.bodyMedium.copyWith(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Status Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getStatusColor(report.status).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              _getStatusDisplayName(report.status),
+              style: AppTheme.bodyMedium.copyWith(
+                fontSize: 12,
+                color: _getStatusColor(report.status),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecentActivity() {
     return Card(
       child: Padding(
@@ -185,17 +389,43 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Recent Activity', style: AppTheme.headlineMedium),
+            Text('Recent Community Activity', style: AppTheme.headlineMedium),
             const SizedBox(height: 16),
-            // TODO: Add actual recent activity items
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppTheme.lightGreen,
-                child: Icon(Icons.eco, color: AppTheme.primaryGreen),
+
+            if (_recentActivity.isEmpty)
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppTheme.lightGreen,
+                  child: Icon(Icons.eco, color: AppTheme.primaryGreen),
+                ),
+                title: Text('No recent activity'),
+                subtitle: Text('Be the first to report trash today!'),
+              )
+            else
+              Column(
+                children: _recentActivity
+                    .take(3)
+                    .map(
+                      (report) => ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.lightGreen,
+                          child: Icon(
+                            Icons.location_on,
+                            color: AppTheme.primaryGreen,
+                          ),
+                        ),
+                        title: Text('New ${report.trashType} report'),
+                        subtitle: Text(
+                          '${Helpers.formatDateTime(report.timestamp)} • ${report.address}',
+                        ),
+                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {
+                          // TODO: Navigate to report details
+                        },
+                      ),
+                    )
+                    .toList(),
               ),
-              title: Text('No recent activity'),
-              subtitle: Text('Start by reporting some trash!'),
-            ),
           ],
         ),
       ),
@@ -217,8 +447,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.camera_alt,
                 AppTheme.primaryGreen,
                 () {
-                  // Navigate to camera
-                  Navigator.pushNamed(context, '/camera');
+                  // Navigate to camera (index 2 in bottom navigation)
+                  DefaultTabController.of(context)?.animateTo(2);
                 },
               ),
             ),
@@ -230,8 +460,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.search,
                 AppTheme.infoBlue,
                 () {
-                  // Navigate to challenges
-                  Navigator.pushNamed(context, '/challenges');
+                  // Navigate to challenges (index 3 in bottom navigation)
+                  DefaultTabController.of(context)?.animateTo(3);
                 },
               ),
             ),
@@ -276,8 +506,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Helper methods
   double _calculateLevelProgress(int points, int level) {
-    // Calculate points needed for current and next level
     int currentLevelPoints = _getPointsForLevel(level);
     int nextLevelPoints = _getPointsForLevel(level + 1);
 
@@ -296,5 +526,56 @@ class _HomeScreenState extends State<HomeScreen> {
     if (level == 4) return 300;
     if (level == 5) return 500;
     return 500 + ((level - 5) * 200);
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return AppTheme.warningOrange;
+      case 'verified':
+        return AppTheme.primaryGreen;
+      case 'cleaning':
+        return AppTheme.infoBlue;
+      case 'completed':
+        return AppTheme.primaryGreen;
+      case 'rejected':
+        return AppTheme.dangerRed;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'pending':
+        return Icons.hourglass_empty;
+      case 'verified':
+        return Icons.check_circle;
+      case 'cleaning':
+        return Icons.cleaning_services;
+      case 'completed':
+        return Icons.done_all;
+      case 'rejected':
+        return Icons.cancel;
+      default:
+        return Icons.help;
+    }
+  }
+
+  String _getStatusDisplayName(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'verified':
+        return 'Verified';
+      case 'cleaning':
+        return 'Cleaning';
+      case 'completed':
+        return 'Completed';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return 'Unknown';
+    }
   }
 }

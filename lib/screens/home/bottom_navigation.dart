@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../../themes/app_theme.dart';
 /* import '../map/map_screen.dart';
 import '../challenges/challenges_screen.dart';
-import '../report/camera_screen.dart';
+
 import '../profile/profile_screen.dart'; */
 import 'home_screen.dart';
+import '../report/camera_screen.dart';
 
 class BottomNavigationScreen extends StatefulWidget {
   @override
@@ -18,7 +19,7 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
   final List<Widget> _screens = [
     HomeScreen(),
     //MapScreen(),
-    //CameraScreen(),
+    CameraScreen(),
     //ChallengesScreen(),
     //ProfileScreen(),
   ];
