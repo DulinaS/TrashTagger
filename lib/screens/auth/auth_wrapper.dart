@@ -1,6 +1,7 @@
 // lib/screens/auth/auth_wrapper.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:trash_tagger/screens/home/home_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import 'login_screen.dart';

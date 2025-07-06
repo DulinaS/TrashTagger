@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // App Logo/Title
-                Icon(Icons.eco, size: 80, color: AppTheme.primaryGreen),
+                Icon(Icons.eco, size: 60, color: AppTheme.primaryGreen),
                 const SizedBox(height: 16),
                 Text(
                   'TrashTagger',
