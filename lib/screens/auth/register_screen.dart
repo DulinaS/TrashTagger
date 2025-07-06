@@ -43,10 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 32),
 
                         // Welcome Text
-                        Text(
-                          'Join TrashTagger',
-                          style: AppTheme.headlineLarge,
-                        ),
+                        Text('Join TrashTagger', style: AppTheme.headlineLarge),
                         const SizedBox(height: 8),
                         Text(
                           'Start making a difference in your community',
@@ -86,7 +83,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your email';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}).hasMatch(value)) {
+                            if (!RegExp(
+                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            ).hasMatch(value)) {
                               return 'Please enter a valid email';
                             }
                             return null;
@@ -102,8 +101,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             labelText: 'Password',
                             prefixIcon: const Icon(Icons.lock_outlined),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
                           ),
                           validator: (value) {
@@ -126,8 +131,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             labelText: 'Confirm Password',
                             prefixIcon: const Icon(Icons.lock_outlined),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
-                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscureConfirmPassword =
+                                    !_obscureConfirmPassword,
+                              ),
                             ),
                           ),
                           validator: (value) {
@@ -215,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       authProvider.clearError();
-      
+
       final success = await authProvider.signUpWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
@@ -223,7 +235,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (success) {
-        Navigator.pop(context); // Return to login or will be handled by AuthWrapper
+        Navigator.pop(
+          context,
+        ); // Return to login or will be handled by AuthWrapper
       }
     }
   }
