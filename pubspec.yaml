@@ -1,5 +1,5 @@
 name: trash_tagger
-description: "A new Flutter project."
+description: 'A new Flutter project.'
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -48,6 +48,13 @@ dependencies:
   flutter_lints: ^6.0.0
   google_sign_in: ^7.1.0
   path: ^1.9.1
+  location: ^8.0.1
+  google_fonts: ^6.2.1
+  animations: ^2.0.11
+  shimmer: ^3.0.0
+  camera: ^0.11.1
+  image: ^4.5.4
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:
@@ -64,7 +71,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
