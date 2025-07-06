@@ -438,45 +438,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     );
   }
 
-  /* Future<void> _acceptChallenge() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final reportsProvider = Provider.of<ReportsProvider>(
-      context,
-      listen: false,
-    );
-
-    if (authProvider.user == null) return;
-
-    setState(() => _isAccepting = true);
-
-    try {
-      await reportsProvider.acceptChallenge(
-        widget.report.id,
-        authProvider.user!.uid,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Challenge accepted! Good luck with the cleanup.'),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to accept challenge: $e'),
-            backgroundColor: AppTheme.dangerRed,
-          ),
-        );
-      }
-    }
-
-    setState(() => _isAccepting = false);
-  } */
   // In your ReportDetailScreen, replace the _acceptChallenge method:
   Future<void> _acceptChallenge() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
