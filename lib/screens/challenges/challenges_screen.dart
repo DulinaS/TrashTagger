@@ -483,7 +483,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   child: ElevatedButton.icon(
                     onPressed: () => _submitProof(challenge),
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('Submit Cleanup Proof!'),
+                    label: const Text('Submit Cleanup Proof'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.infoBlue,
                     ),
@@ -506,39 +506,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
   }
 
-  /* Future<void> _acceptChallenge(TrashReportModel challenge) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final reportsProvider = Provider.of<ReportsProvider>(
-      context,
-      listen: false,
-    );
-
-    if (authProvider.user == null) return;
-
-    try {
-      await reportsProvider.acceptChallenge(
-        challenge.id,
-        authProvider.user!.uid,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Challenge accepted! Good luck with the cleanup.'),
-          backgroundColor: AppTheme.primaryGreen,
-        ),
-      );
-
-      // Refresh the lists
-      _loadChallenges();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to accept challenge: $e'),
-          backgroundColor: AppTheme.dangerRed,
-        ),
-      );
-    }
-  } */
   Future<void> _acceptChallenge(TrashReportModel challenge) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.user == null) return;
