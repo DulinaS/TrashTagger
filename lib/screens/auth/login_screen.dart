@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // App Logo/Title
-                Icon(Icons.eco, size: 60, color: AppTheme.primaryGreen),
+                Icon(Icons.eco, size: 50, color: AppTheme.primaryGreen),
                 const SizedBox(height: 16),
                 Text(
                   'TrashTagger',
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: AppTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 35),
 
                 // Email Field
                 TextFormField(
@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
                 // Login Button
                 Consumer<AuthProvider>(
@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 25),
 
                 // Error Message
                 Consumer<AuthProvider>(

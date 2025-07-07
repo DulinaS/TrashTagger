@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:trash_tagger/screens/challenges/cleanup_proof_screen.dart';
 import 'package:trash_tagger/screens/map/report_detail_Screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/reports_provider.dart';
@@ -482,7 +483,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   child: ElevatedButton.icon(
                     onPressed: () => _submitProof(challenge),
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('Submit Cleanup Proof'),
+                    label: const Text('Submit Cleanup Proof!'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.infoBlue,
                     ),
@@ -580,12 +581,11 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     }
   }
 
-  Future<void> _submitProof(TrashReportModel challenge) async {
-    // TODO: Implement camera capture for cleanup proof
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Cleanup proof submission - Coming soon!'),
-        backgroundColor: AppTheme.infoBlue,
+  void _submitProof(TrashReportModel challenge) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CleanupProofScreen(challenge: challenge),
       ),
     );
   }
