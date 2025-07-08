@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:trash_tagger/screens/profile/badges_screen.dart';
 import 'package:trash_tagger/screens/profile/leaderboard_screen.dart';
+import 'package:trash_tagger/screens/profile/settings_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../themes/app_theme.dart';
@@ -520,9 +521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               leading: Icon(Icons.settings, color: AppTheme.textSecondary),
               title: const Text('Settings'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                // TODO: Navigate to settings
-              },
+              onTap: () => _routeToSettingsScreen(),
             ),
             ListTile(
               leading: Icon(Icons.help_outline, color: AppTheme.textSecondary),
@@ -583,6 +582,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => LeaderboardScreen()),
+    );
+  }
+
+  void _routeToSettingsScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SettingsScreen()),
     );
   }
 
