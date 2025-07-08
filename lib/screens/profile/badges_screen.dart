@@ -180,101 +180,119 @@ class _BadgesScreenState extends State<BadgesScreen> {
 
     return Card(
       elevation: isEarned ? 4 : 1,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: isEarned ? Border.all(color: rarityColor, width: 2) : null,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Badge Icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isEarned
-                      ? rarityColor.withOpacity(0.2)
-                      : AppTheme.textSecondary.withOpacity(0.1),
-                ),
-                child: Icon(
-                  _getBadgeIcon(badge['id']),
-                  size: 28,
-                  color: isEarned ? rarityColor : AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Badge Name
-              Text(
-                badge['name'] ?? 'Unknown',
-                style: AppTheme.labelMedium.copyWith(
-                  color: isEarned
-                      ? AppTheme.textPrimary
-                      : AppTheme.textSecondary,
-                  fontWeight: isEarned ? FontWeight.bold : FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-
-              // Points Reward
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isEarned
-                      ? AppTheme.primaryGreen.withOpacity(0.1)
-                      : AppTheme.textSecondary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${badge['pointsAwarded'] ?? 0} pts',
-                  style: AppTheme.bodyMedium.copyWith(
-                    fontSize: 12,
-                    color: isEarned
-                        ? AppTheme.primaryGreen
-                        : AppTheme.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // Rarity
-              Text(
-                rarity.toUpperCase(),
-                style: AppTheme.bodyMedium.copyWith(
-                  fontSize: 10,
-                  color: rarityColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              // Lock overlay for unearned badges
-              if (!isEarned)
-                Positioned.fill(
-                  child: Container(
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: isEarned
+                  ? Border.all(color: rarityColor, width: 2)
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12), // Reduced padding
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Badge Icon
+                  Container(
+                    width: 40, // Slightly smaller icon
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
+                      shape: BoxShape.circle,
+                      color: isEarned
+                          ? rarityColor.withOpacity(0.2)
+                          : AppTheme.textSecondary.withOpacity(0.1),
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.lock_outlined,
-                        color: Colors.white,
-                        size: 24,
+                    child: Icon(
+                      _getBadgeIcon(badge['id']),
+                      size: 24, // Smaller icon size
+                      color: isEarned ? rarityColor : AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Badge Name
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        badge['name'] ?? 'Unknown',
+                        style: AppTheme.labelMedium.copyWith(
+                          color: isEarned
+                              ? AppTheme.textPrimary
+                              : AppTheme.textSecondary,
+                          fontWeight: isEarned
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          fontSize: 12, // Smaller font
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2, // Allow 2 lines for longer names
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
-                ),
-            ],
+
+                  // Points Reward
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isEarned
+                          ? AppTheme.primaryGreen.withOpacity(0.1)
+                          : AppTheme.textSecondary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${badge['pointsAwarded'] ?? 0} pts',
+                      style: AppTheme.bodyMedium.copyWith(
+                        fontSize: 10,
+                        color: isEarned
+                            ? AppTheme.primaryGreen
+                            : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+
+                  // Rarity
+                  Text(
+                    rarity.toUpperCase(),
+                    style: AppTheme.bodyMedium.copyWith(
+                      fontSize: 9,
+                      color: rarityColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+
+          // Lock overlay for unearned badges
+          if (!isEarned)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.lock_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
