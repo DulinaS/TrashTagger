@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:trash_tagger/screens/profile/badges_screen.dart';
+import 'package:trash_tagger/screens/profile/leaderboard_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../themes/app_theme.dart';
@@ -373,9 +374,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text('Leaderboard', style: AppTheme.headlineMedium),
                 TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to full leaderboard
-                  },
+                  onPressed: () => _routeToLeaderboardScreen(),
                   child: const Text('View All'),
                 ),
               ],
@@ -577,6 +576,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => BadgesScreen()),
+    );
+  }
+
+  void _routeToLeaderboardScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LeaderboardScreen()),
     );
   }
 
