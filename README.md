@@ -151,7 +151,7 @@ MIT License – feel free to fork and build on it.
 
 - [Dulina Senarathne](https://github.com/DulinaS)
 - [Janindu Mahathanthila](https://github.com/janindujm)
-- [Dilya Walpola]()
+- [Dilya Walpola](https://github.com/dilyawalpola)
 
 ---
 
@@ -165,4 +165,3 @@ Pull requests are welcome. Please open an issue first to discuss any major chang
 
 🚧 In development – MVP due by 2025 Aug
 
-> > > > > > > 6b667b9b564e86d354f953468fe742531f351b01
