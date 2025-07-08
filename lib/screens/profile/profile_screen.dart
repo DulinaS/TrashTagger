@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:trash_tagger/screens/profile/badges_screen.dart';
+import 'package:trash_tagger/screens/profile/leaderboard_screen.dart';
+import 'package:trash_tagger/screens/profile/settings_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../themes/app_theme.dart';
@@ -53,9 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: Navigate to settings
-            },
+            onPressed: () => _routeToSettingsScreen(),
           ),
         ],
       ),
@@ -276,9 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text('Achievements', style: AppTheme.headlineMedium),
                 TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to full badges screen
-                  },
+                  onPressed: () => _routeToBadgesScreen(),
                   child: const Text('View All'),
                 ),
               ],
@@ -374,9 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text('Leaderboard', style: AppTheme.headlineMedium),
                 TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to full leaderboard
-                  },
+                  onPressed: () => _routeToLeaderboardScreen(),
                   child: const Text('View All'),
                 ),
               ],
@@ -522,9 +519,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               leading: Icon(Icons.settings, color: AppTheme.textSecondary),
               title: const Text('Settings'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                // TODO: Navigate to settings
-              },
+              onTap: () => _routeToSettingsScreen(),
             ),
             ListTile(
               leading: Icon(Icons.help_outline, color: AppTheme.textSecondary),
@@ -571,6 +566,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _routeToBadgesScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => BadgesScreen()),
+    );
+  }
+
+  void _routeToLeaderboardScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LeaderboardScreen()),
+    );
+  }
+
+  void _routeToSettingsScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SettingsScreen()),
     );
   }
 
