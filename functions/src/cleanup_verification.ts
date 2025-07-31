@@ -18,20 +18,35 @@ export const verifyCleanupProof = functions.firestore
     const afterData = change.after.data();
     const reportId = context.params.reportId;
 
-    // Check if proof was just submitted
-    if (!beforeData.proofURL && afterData.proofURL) {
-      console.log(`🔍 Verifying cleanup proof for report: ${reportId}`);
+    console.log(`📋 Document ${reportId} updated:`);
+    console.log(`   - Before proofURL: ${beforeData.proofURL}`);
+    console.log(`   - After proofURL: ${afterData.proofURL}`);
+    console.log(`   - Status: ${beforeData.status} → ${afterData.status}`);
 
-      // Clear any previous verification results for fresh start
+    // ✅ FIXED: Trigger on ANY proof URL change, not just when resubmissionAttempt is set
+    if (
+      (!beforeData.proofURL && afterData.proofURL) ||
+      (beforeData.proofURL !== afterData.proofURL && afterData.proofURL)
+    ) {
+      console.log(`🔍 Verifying cleanup proof for report: ${reportId}`);
+      console.log(`Previous URL: ${beforeData.proofURL}`);
+      console.log(`New URL: ${afterData.proofURL}`);
+
+      // ✅ Reset verification state for new attempt
       await change.after.ref.update({
         proofVerification: admin.firestore.FieldValue.delete(),
-        status: 'processing', // Set to processing while AI analyzes
+        status: 'processing',
+        disputeResolved: false,
       });
 
       try {
         // Get both images
         const originalImageUrl = afterData.imageURL;
         const proofImageUrl = afterData.proofURL;
+
+        if (!originalImageUrl || !proofImageUrl) {
+          throw new Error('Missing original or proof image URL');
+        }
 
         // Analyze both images
         const [originalResult] = await visionClient.labelDetection(
@@ -62,7 +77,6 @@ export const verifyCleanupProof = functions.firestore
         // ================================
         // VERIFICATION LOGIC
         // ================================
-
         const verification = await performCleanupVerification(
           originalDescriptions,
           proofDescriptions,
@@ -70,37 +84,63 @@ export const verifyCleanupProof = functions.firestore
           proofImageUrl
         );
 
-        // Update report with verification results
+        // ✅ FIXED: Check attempt count BEFORE updating
+        const currentAttemptNumber =
+          (beforeData.proofVerification?.attemptNumber || 0) + 1;
+        const MAX_ATTEMPTS = 3;
+
+        let finalStatus = verification.verified ? 'completed' : 'disputed';
+
+        // If max attempts exceeded and still failing, require manual review
+        if (!verification.verified && currentAttemptNumber >= MAX_ATTEMPTS) {
+          finalStatus = 'needs_manual_review';
+          console.log(
+            `⚠️ Max attempts (${MAX_ATTEMPTS}) exceeded for report ${reportId}`
+          );
+        }
+
+        // ✅ FIXED: Complete verification data update
         await change.after.ref.update({
           proofVerification: {
             verified: verification.verified,
             confidence: verification.confidence,
             reasons: verification.reasons,
             analyzedAt: admin.firestore.FieldValue.serverTimestamp(),
+            attemptNumber: currentAttemptNumber,
           },
-          // Only award points if verification passes
-          status: verification.verified ? 'completed' : 'disputed',
+          status: finalStatus,
+          disputeResolved: verification.verified,
+          lastProofAttempt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         console.log(
-          `✅ Proof verification: ${
+          `✅ Proof verification ${
             verification.verified ? 'PASSED' : 'FAILED'
-          } (${verification.confidence}%)`
+          } - Attempt ${currentAttemptNumber}/${MAX_ATTEMPTS}`
         );
 
-        return { success: true, verification };
+        return {
+          success: true,
+          verification,
+          attemptNumber: currentAttemptNumber,
+        };
       } catch (error) {
         console.error(`❌ Error verifying cleanup proof: ${error}`);
 
-        // Mark as needing manual review
+        // ✅ FIXED: Proper error handling with attempt tracking
+        const currentAttemptNumber =
+          (beforeData.proofVerification?.attemptNumber || 0) + 1;
+
         await change.after.ref.update({
+          status: 'needs_manual_review',
           proofVerification: {
             verified: false,
             confidence: 0,
-            reasons: ['Technical error during verification'],
-            needsManualReview: true,
+            reasons: [`Error during verification: ${error}`],
             analyzedAt: admin.firestore.FieldValue.serverTimestamp(),
+            attemptNumber: currentAttemptNumber,
           },
+          lastProofAttempt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         return { success: false, error: String(error) };
@@ -274,7 +314,7 @@ async function performCleanupVerification(
   // Ensure confidence is within bounds
   confidence = Math.max(0, Math.min(100, confidence));
 
-  const verified = confidence >= 60; // 60% confidence threshold
+  const verified = confidence >= 70; // 60% confidence threshold
 
   if (verified) {
     reasons.push('🎉 Cleanup verification PASSED');

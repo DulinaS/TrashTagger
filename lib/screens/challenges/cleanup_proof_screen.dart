@@ -27,18 +27,32 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
   final StorageService _storageService = StorageService();
   final _notesController = TextEditingController();
 
+  bool get canResubmit => widget.challenge.status == 'disputed';
+
+  bool get isFirstSubmission =>
+      widget.challenge.proofURL == null || widget.challenge.proofURL!.isEmpty;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(title: const Text('Submit Cleanup Proof'), elevation: 0),
+      appBar: AppBar(
+        title: Text(
+          widget.challenge.status == 'disputed'
+              ? 'Resubmit Cleanup Proof'
+              : 'Submit Cleanup Proof',
+        ),
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Show resubmission notice only for disputed status
             if (widget.challenge.status == 'disputed')
               _buildResubmissionNotice(),
+
             // Original Trash Photo
             _buildOriginalPhotoSection(),
             const SizedBox(height: 24),
@@ -63,30 +77,57 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
 
   Widget _buildResubmissionNotice() {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.warningYellow.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.warningYellow),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.refresh, color: AppTheme.warningYellow),
-          SizedBox(height: 8),
-          Text('Previous proof was disputed', style: AppTheme.headlineMedium),
-          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: AppTheme.warningYellow),
+              const SizedBox(width: 8),
+              Text(
+                'Cleanup Proof Disputed',
+                style: AppTheme.labelMedium.copyWith(
+                  color: AppTheme.warningYellow,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
-            'Please submit a clearer proof photo from the same location.',
+            'Your previous proof photo was disputed. Please submit a new photo that clearly shows:',
             style: AppTheme.bodyMedium,
           ),
-          if (widget.challenge.proofVerification?.reasons != null)
+          const SizedBox(height: 8),
+          if (widget.challenge.proofVerification?.reasons?.isNotEmpty ??
+              false) ...[
             ...widget.challenge.proofVerification!.reasons.map(
-              (reason) => Text(
-                '• $reason',
-                style: Theme.of(context).textTheme.bodySmall,
+              (reason) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• ', style: AppTheme.bodyMedium),
+                    Expanded(
+                      child: Text(
+                        reason,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -313,10 +354,17 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
       ),
       child: SafeArea(
         child: CustomButton(
-          text: 'Submit Cleanup Proof',
+          text: _isSubmitting
+              ? 'Submitting...'
+              : (widget.challenge.status == 'disputed'
+                    ? 'Resubmit Cleanup Proof'
+                    : 'Submit Cleanup Proof'),
           icon: Icons.check_circle,
           isLoading: _isSubmitting,
           onPressed: _proofImage != null ? _submitProof : null,
+          backgroundColor: widget.challenge.status == 'disputed'
+              ? AppTheme.warningYellow
+              : AppTheme.primaryGreen,
         ),
       ),
     );
@@ -383,36 +431,42 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Upload proof image
       final proofURL = await _storageService.uploadCleanupProofImage(
         _proofImage!,
         widget.challenge.id,
         authProvider.user!.uid,
       );
 
-      // Update the report with proof
+      final data = {
+        'proofURL': proofURL,
+        'proofTimestamp': FieldValue.serverTimestamp(),
+        'cleanupNotes': _notesController.text.trim(),
+        'status': 'processing',
+      };
+
+      // Add resubmission-specific fields
+      if (widget.challenge.status == 'disputed') {
+        data['previousProofURL'] = widget.challenge.proofURL!;
+        data['resubmissionAttempt'] = true;
+        data['disputeResolved'] = false;
+      }
+
       await FirebaseFirestore.instance
           .collection('trashReports')
           .doc(widget.challenge.id)
-          .update({
-            'proofURL': proofURL,
-            'proofTimestamp': FieldValue.serverTimestamp(),
-            //'status': 'completed', let AI decide this
-            'cleanupNotes': _notesController.text.trim(),
-          });
+          .update(data);
 
-      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Cleanup proof submitted! Points will be awarded soon.',
+              widget.challenge.status == 'disputed'
+                  ? 'Proof resubmitted successfully! Under review.'
+                  : 'Cleanup proof submitted! Under review.',
             ),
             backgroundColor: AppTheme.primaryGreen,
           ),
         );
-
-        // Navigate back to challenges screen
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {

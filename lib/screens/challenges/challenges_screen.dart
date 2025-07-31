@@ -476,16 +476,23 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                     ),
                   ],
                 ),
-              ] else if (challenge.status == 'cleaning') ...[
+              ] else if (challenge.status == 'cleaning' ||
+                  challenge.status == 'disputed') ...[
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () => _submitProof(challenge),
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('Submit Cleanup Proof'),
+                    label: Text(
+                      challenge.status == 'disputed'
+                          ? 'Resubmit Cleanup Proof'
+                          : 'Submit Cleanup Proof',
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.infoBlue,
+                      backgroundColor: challenge.status == 'disputed'
+                          ? AppTheme.warningYellow
+                          : AppTheme.infoBlue,
                     ),
                   ),
                 ),
