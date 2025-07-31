@@ -24,6 +24,7 @@ class TrashReportModel {
   final ReportVotes votes;
   final bool flagged;
   final List<String> flagReasons;
+  final ProofVerification? proofVerification;
 
   TrashReportModel({
     required this.id,
@@ -48,6 +49,7 @@ class TrashReportModel {
     required this.votes,
     required this.flagged,
     required this.flagReasons,
+    this.proofVerification,
   });
 
   // lib/models/trash_report_model.dart - Fix the fromMap method
@@ -136,5 +138,43 @@ class ReportVotes {
 
   Map<String, dynamic> toMap() {
     return {'upvotes': upvotes, 'downvotes': downvotes, 'voters': voters};
+  }
+}
+
+class ProofVerification {
+  final bool verified;
+  final int confidence;
+  final List<String> reasons;
+  final DateTime? analyzedAt;
+  final bool? needsManualReview;
+
+  ProofVerification({
+    required this.verified,
+    required this.confidence,
+    required this.reasons,
+    this.analyzedAt,
+    this.needsManualReview,
+  });
+
+  factory ProofVerification.fromMap(Map<String, dynamic> map) {
+    return ProofVerification(
+      verified: map['verified'] ?? false,
+      confidence: map['confidence'] ?? 0,
+      reasons: List<String>.from(map['reasons'] ?? []),
+      analyzedAt: map['analyzedAt'] != null
+          ? (map['analyzedAt'] as Timestamp).toDate()
+          : null,
+      needsManualReview: map['needsManualReview'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'verified': verified,
+      'confidence': confidence,
+      'reasons': reasons,
+      'analyzedAt': analyzedAt != null ? Timestamp.fromDate(analyzedAt!) : null,
+      'needsManualReview': needsManualReview,
+    };
   }
 }

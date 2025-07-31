@@ -37,6 +37,8 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.challenge.status == 'disputed')
+              _buildResubmissionNotice(),
             // Original Trash Photo
             _buildOriginalPhotoSection(),
             const SizedBox(height: 24),
@@ -56,6 +58,37 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
         ),
       ),
       bottomNavigationBar: _buildSubmitButton(),
+    );
+  }
+
+  Widget _buildResubmissionNotice() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.warningYellow.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.warningYellow),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.refresh, color: AppTheme.warningYellow),
+          SizedBox(height: 8),
+          Text('Previous proof was disputed', style: AppTheme.headlineMedium),
+          SizedBox(height: 8),
+          Text(
+            'Please submit a clearer proof photo from the same location.',
+            style: AppTheme.bodyMedium,
+          ),
+          if (widget.challenge.proofVerification?.reasons != null)
+            ...widget.challenge.proofVerification!.reasons.map(
+              (reason) => Text(
+                '• $reason',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -364,7 +397,7 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
           .update({
             'proofURL': proofURL,
             'proofTimestamp': FieldValue.serverTimestamp(),
-            'status': 'completed',
+            //'status': 'completed', let AI decide this
             'cleanupNotes': _notesController.text.trim(),
           });
 
@@ -387,6 +420,28 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     } finally {
       setState(() => _isSubmitting = false);
     }
+  }
+
+  // In your CleanupProofScreen - add this to show verification status
+  Widget _buildVerificationStatus() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(Icons.security, color: AppTheme.infoBlue),
+            SizedBox(height: 8),
+            Text('AI Verification', style: AppTheme.headlineMedium),
+            SizedBox(height: 8),
+            Text(
+              'Your proof will be automatically verified using AI to ensure it shows the same location cleaned up.',
+              style: AppTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showError(String message) {

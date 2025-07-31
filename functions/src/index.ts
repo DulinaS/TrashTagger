@@ -498,3 +498,14 @@ export {
   resetDatabase,
   createTestData,
 } from './initialization';
+
+export {
+  verifyCleanupProof,
+  requestManualReview,
+} from './cleanup_verification';
+
+export {
+  sendDailyReminders,
+  resetMonthlyLeaderboard,
+  updateWeeklyStats,
+} from './scheduled_functions';
