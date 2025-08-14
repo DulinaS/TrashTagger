@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Quick Actions
                   _buildQuickActions(),
-                  ElevatedButton(
+                  /* ElevatedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                     child: Text('🗺️ Test Maps'),
-                  ),
+                  ), */
                 ],
               ),
             ),
