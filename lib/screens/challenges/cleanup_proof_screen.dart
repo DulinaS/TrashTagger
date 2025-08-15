@@ -1,6 +1,7 @@
 // lib/screens/challenges/cleanup_proof_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -27,16 +28,36 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
   final StorageService _storageService = StorageService();
   final _notesController = TextEditingController();
 
+  Position? _currentGPSPosition;
+  bool _locationVerified = false;
+  double? _distanceFromReported;
+
+  bool get canResubmit => widget.challenge.status == 'disputed';
+
+  bool get isFirstSubmission =>
+      widget.challenge.proofURL == null || widget.challenge.proofURL!.isEmpty;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(title: const Text('Submit Cleanup Proof'), elevation: 0),
+      appBar: AppBar(
+        title: Text(
+          widget.challenge.status == 'disputed'
+              ? 'Resubmit Cleanup Proof'
+              : 'Submit Cleanup Proof',
+        ),
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Show resubmission notice only for disputed status
+            if (widget.challenge.status == 'disputed')
+              _buildResubmissionNotice(),
+
             // Original Trash Photo
             _buildOriginalPhotoSection(),
             const SizedBox(height: 24),
@@ -56,6 +77,271 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
         ),
       ),
       bottomNavigationBar: _buildSubmitButton(),
+    );
+  }
+
+  Widget _buildLocationVerificationSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.location_on, color: AppTheme.primaryGreen),
+                const SizedBox(width: 8),
+                Text('Location Verification', style: AppTheme.headlineMedium),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Show challenge location
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.lightGreen.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Challenge Location:', style: AppTheme.labelMedium),
+                  const SizedBox(height: 4),
+                  Text(widget.challenge.address, style: AppTheme.bodyMedium),
+                  const SizedBox(height: 8),
+
+                  // GPS verification status
+                  if (_currentGPSPosition != null) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          _locationVerified
+                              ? Icons.check_circle
+                              : Icons.warning,
+                          size: 16,
+                          color: _locationVerified
+                              ? AppTheme.primaryGreen
+                              : AppTheme.warningOrange,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _locationVerified
+                              ? 'You are at the challenge location'
+                              : 'You are ${_distanceFromReported?.toInt()}m away',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: _locationVerified
+                                ? AppTheme.primaryGreen
+                                : AppTheme.warningOrange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.gps_off,
+                          size: 16,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'GPS verification unavailable',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Verify location button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _verifyCurrentLocation,
+                icon: const Icon(Icons.my_location),
+                label: const Text('Verify My Location'),
+              ),
+            ),
+
+            if (!_locationVerified && _distanceFromReported != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.warningOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'For best verification results, please go to the exact location where the trash was reported.',
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.warningOrange,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ADD: Location verification method
+  Future<void> _verifyCurrentLocation() async {
+    try {
+      final permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showLocationPermissionDialog();
+        return;
+      }
+
+      _currentGPSPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+
+      final challengeLocation = widget.challenge.location;
+      _distanceFromReported = Geolocator.distanceBetween(
+        _currentGPSPosition!.latitude,
+        _currentGPSPosition!.longitude,
+        challengeLocation.latitude,
+        challengeLocation.longitude,
+      );
+
+      setState(() {
+        _locationVerified = _distanceFromReported! <= 100; // Within 100m
+      });
+
+      if (!_locationVerified) {
+        _showLocationWarningDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Location verified! You are at the challenge location.',
+            ),
+            backgroundColor: AppTheme.primaryGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to verify location: $e'),
+          backgroundColor: AppTheme.warningOrange,
+        ),
+      );
+    }
+  }
+
+  void _showLocationWarningDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Location Notice'),
+        content: Text(
+          'You appear to be ${_distanceFromReported?.toInt()}m away from the reported location. '
+          'For best verification results, please go to the exact spot where the trash was found.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('I understand'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Location Permission'),
+        content: Text(
+          'Location verification helps confirm you are at the cleanup site. You can still submit proof without it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Continue Without GPS'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Geolocator.openAppSettings();
+            },
+            child: Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResubmissionNotice() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.warningYellow.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.warningYellow),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: AppTheme.warningYellow),
+              const SizedBox(width: 8),
+              Text(
+                'Cleanup Proof Disputed',
+                style: AppTheme.labelMedium.copyWith(
+                  color: AppTheme.warningYellow,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Your previous proof photo was disputed. Please submit a new photo that clearly shows:',
+            style: AppTheme.bodyMedium,
+          ),
+          const SizedBox(height: 8),
+          if (widget.challenge.proofVerification?.reasons?.isNotEmpty ??
+              false) ...[
+            ...widget.challenge.proofVerification!.reasons.map(
+              (reason) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• ', style: AppTheme.bodyMedium),
+                    Expanded(
+                      child: Text(
+                        reason,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -280,10 +566,17 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
       ),
       child: SafeArea(
         child: CustomButton(
-          text: 'Submit Cleanup Proof',
+          text: _isSubmitting
+              ? 'Submitting...'
+              : (widget.challenge.status == 'disputed'
+                    ? 'Resubmit Cleanup Proof'
+                    : 'Submit Cleanup Proof'),
           icon: Icons.check_circle,
           isLoading: _isSubmitting,
           onPressed: _proofImage != null ? _submitProof : null,
+          backgroundColor: widget.challenge.status == 'disputed'
+              ? AppTheme.warningYellow
+              : AppTheme.primaryGreen,
         ),
       ),
     );
@@ -339,6 +632,61 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     });
   }
 
+  /* Future<void> _submitProof() async {
+    if (_proofImage == null) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final proofURL = await _storageService.uploadCleanupProofImage(
+        _proofImage!,
+        widget.challenge.id,
+        authProvider.user!.uid,
+      );
+
+      final data = {
+        'proofURL': proofURL,
+        'proofTimestamp': FieldValue.serverTimestamp(),
+        'cleanupNotes': _notesController.text.trim(),
+        'status': 'processing',
+      };
+
+      // Add resubmission-specific fields
+      if (widget.challenge.status == 'disputed') {
+        data['previousProofURL'] = widget.challenge.proofURL!;
+        data['resubmissionAttempt'] = true;
+        data['disputeResolved'] = false;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('trashReports')
+          .doc(widget.challenge.id)
+          .update(data);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.challenge.status == 'disputed'
+                  ? 'Proof resubmitted successfully! Under review.'
+                  : 'Cleanup proof submitted! Under review.',
+            ),
+            backgroundColor: AppTheme.primaryGreen,
+          ),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      _showError('Failed to submit proof: $e');
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  } */
   Future<void> _submitProof() async {
     if (_proofImage == null) return;
 
@@ -350,36 +698,59 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Upload proof image
       final proofURL = await _storageService.uploadCleanupProofImage(
         _proofImage!,
         widget.challenge.id,
         authProvider.user!.uid,
       );
 
-      // Update the report with proof
+      // Enhanced data with location verification
+      final data = {
+        'proofURL': proofURL,
+        'proofTimestamp': FieldValue.serverTimestamp(),
+        'cleanupNotes': _notesController.text.trim(),
+        'status': 'processing',
+
+        // NEW: Enhanced verification metadata
+        'proofMetadata': {
+          'submissionLocation': _currentGPSPosition != null
+              ? GeoPoint(
+                  _currentGPSPosition!.latitude,
+                  _currentGPSPosition!.longitude,
+                )
+              : null,
+          'locationVerified': _locationVerified,
+          'distanceFromReported': _distanceFromReported,
+          'deviceInfo': {
+            'platform': Platform.operatingSystem,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          },
+          'verificationMethod': 'enhanced_maps',
+        },
+      };
+
+      if (widget.challenge.status == 'disputed') {
+        data['previousProofURL'] = widget.challenge.proofURL!;
+        data['resubmissionAttempt'] = true;
+        data['disputeResolved'] = false;
+      }
+
       await FirebaseFirestore.instance
           .collection('trashReports')
           .doc(widget.challenge.id)
-          .update({
-            'proofURL': proofURL,
-            'proofTimestamp': FieldValue.serverTimestamp(),
-            'status': 'completed',
-            'cleanupNotes': _notesController.text.trim(),
-          });
+          .update(data);
 
-      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Cleanup proof submitted! Points will be awarded soon.',
+              widget.challenge.status == 'disputed'
+                  ? 'Proof resubmitted successfully! Under review.'
+                  : 'Cleanup proof submitted! Under review.',
             ),
             backgroundColor: AppTheme.primaryGreen,
           ),
         );
-
-        // Navigate back to challenges screen
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
@@ -387,6 +758,28 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     } finally {
       setState(() => _isSubmitting = false);
     }
+  }
+
+  // In your CleanupProofScreen - add this to show verification status
+  Widget _buildVerificationStatus() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(Icons.security, color: AppTheme.infoBlue),
+            SizedBox(height: 8),
+            Text('AI Verification', style: AppTheme.headlineMedium),
+            SizedBox(height: 8),
+            Text(
+              'Your proof will be automatically verified using AI to ensure it shows the same location cleaned up.',
+              style: AppTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showError(String message) {

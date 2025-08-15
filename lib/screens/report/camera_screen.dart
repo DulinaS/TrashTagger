@@ -19,14 +19,11 @@ class _CameraScreenState extends State<CameraScreen> {
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
   bool _isLoading = false;
-  Position? _currentPosition;
-  String? _currentAddress;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
-    _getCurrentLocation();
   }
 
   Future<void> _initializeCamera() async {
@@ -66,60 +63,6 @@ class _CameraScreenState extends State<CameraScreen> {
       }
     } catch (e) {
       _showError('Failed to initialize camera: $e');
-    }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    try {
-      // Request location permission
-      final locationPermission = await Permission.location.request();
-      if (!locationPermission.isGranted) {
-        _showPermissionDialog('Location');
-        return;
-      }
-
-      // Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        _showError(
-          'Location services are disabled. Please enable them in settings.',
-        );
-        return;
-      }
-
-      // Get current position
-      _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
-
-      // Get address from coordinates
-      if (_currentPosition != null) {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-        );
-
-        if (placemarks.isNotEmpty) {
-          final placemark = placemarks.first;
-          _currentAddress =
-              [
-                    placemark.street,
-                    placemark.locality,
-                    placemark.administrativeArea,
-                    placemark.country,
-                  ]
-                  .where((element) => element != null && element.isNotEmpty)
-                  .join(', ');
-        }
-      }
-
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      print('Error getting location: $e');
-      // Continue without location - user can add it manually
     }
   }
 
@@ -173,33 +116,14 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_currentAddress != null) ...[
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          _currentAddress!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
                 const Text(
                   'Point your camera at trash and take a photo',
                   style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'You\'ll select the exact location on the next screen',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -372,11 +296,7 @@ class _CameraScreenState extends State<CameraScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReportFormScreen(
-          imageFile: imageFile,
-          location: _currentPosition,
-          address: _currentAddress,
-        ),
+        builder: (context) => ReportFormScreen(imageFile: imageFile),
       ),
     );
   }

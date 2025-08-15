@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:trash_tagger/test_maps.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/reports_provider.dart';
@@ -146,6 +147,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Quick Actions
                   _buildQuickActions(),
+                  /* ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TestMapsScreen(),
+                        ),
+                      );
+                    },
+                    child: Text('🗺️ Test Maps'),
+                  ), */
                 ],
               ),
             ),
@@ -465,7 +477,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.search,
                 AppTheme.infoBlue,
                 () {
-                  // Navigate to challenges (index 3 in bottom navigation)
                   DefaultTabController.of(context)?.animateTo(3);
                 },
               ),

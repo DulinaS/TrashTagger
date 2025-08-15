@@ -498,3 +498,20 @@ export {
   resetDatabase,
   createTestData,
 } from './initialization';
+
+/* export {
+  verifyCleanupProof,
+  requestManualReview,
+} from './cleanup_verification'; */
+// functions/src/index.ts - MODIFY EXISTING FILE
+
+export {
+  verifyCleanupProof, // Use new enhanced version
+  requestManualReview,
+} from './enhanced_cleanup_verification'; // Changed import
+
+export {
+  sendDailyReminders,
+  resetMonthlyLeaderboard,
+  updateWeeklyStats,
+} from './scheduled_functions';
