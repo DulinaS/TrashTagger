@@ -169,7 +169,7 @@ async function performEnhancedVerification(params: {
     reasons.push('⚠️ Metadata analysis failed');
   }
 
-  // Calculate weighted confidence
+  /* // Calculate weighted confidence
   const confidence = Math.round(
     methods.visualSimilarity * 0.4 +
       methods.locationProximity * 0.3 +
@@ -186,6 +186,32 @@ async function performEnhancedVerification(params: {
     reasons.push('⚠️ Borderline confidence - flagged for manual review');
   }
 
+  if (verified) {
+    reasons.push('🎉 Cleanup verification PASSED - all checks successful');
+  } else if (requiresManualReview) {
+    reasons.push('👁️ Verification needs human review');
+  } else {
+    reasons.push('❌ Cleanup verification FAILED - insufficient confidence');
+  } */
+  // Calculate weighted confidence
+  const confidence = Math.round(
+    methods.visualSimilarity * 0.4 +
+      methods.locationProximity * 0.3 +
+      methods.timestampValidity * 0.2 +
+      methods.imageMetadata * 0.1
+  );
+
+  // UPDATED VERIFICATION THRESHOLDS - More realistic
+  const verified = confidence >= 60 && !requiresManualReview; // Lowered from 70 to 60
+
+  // UPDATED FLAG FOR MANUAL REVIEW - More lenient
+  if (confidence >= 45 && confidence < 60 && !requiresManualReview) {
+    // Lowered from 50-70
+    requiresManualReview = true;
+    reasons.push('⚠️ Borderline confidence - flagged for manual review');
+  }
+
+  // Success/failure messages
   if (verified) {
     reasons.push('🎉 Cleanup verification PASSED - all checks successful');
   } else if (requiresManualReview) {
@@ -303,7 +329,7 @@ async function verifyLocationProximity(
   const reasons: string[] = [];
   let score = 0;
 
-  // 1. Check GPS data from proof submission metadata
+  /* // 1. Check GPS data from proof submission metadata
   if (proofMetadata?.submissionLocation) {
     const submissionLocation = proofMetadata.submissionLocation;
     const distance = calculateDistance(
@@ -364,6 +390,91 @@ async function verifyLocationProximity(
             `✅ Image GPS confirms location (${(distance * 1000).toFixed(0)}m)`
           );
         } else if (distance <= 0.2) {
+          score += 25;
+          reasons.push(
+            `✅ Image GPS nearby (${(distance * 1000).toFixed(0)}m)`
+          );
+        }
+      } else {
+        reasons.push('📍 No GPS data available for location verification');
+      }
+    } catch (error) {
+      reasons.push('📍 Could not extract location data from image');
+    }
+  } */
+  // 1. Check GPS data from proof submission metadata
+  if (proofMetadata?.submissionLocation) {
+    const submissionLocation = proofMetadata.submissionLocation;
+    const distance = calculateDistance(
+      { lat: reportLocation.latitude, lng: reportLocation.longitude },
+      { lat: submissionLocation.latitude, lng: submissionLocation.longitude }
+    );
+
+    // UPDATED THRESHOLDS - More realistic for cleanup scenarios
+    if (distance <= 0.1) {
+      // Within 100 meters - perfect
+      score += 50;
+      reasons.push(
+        `✅ Proof submitted from exact location (${(distance * 1000).toFixed(
+          0
+        )}m away)`
+      );
+    } else if (distance <= 0.4) {
+      // Within 400 meters - good (your 327m case would get points here)
+      score += 35;
+      reasons.push(
+        `✅ Proof submitted near location (${(distance * 1000).toFixed(
+          0
+        )}m away)`
+      );
+    } else if (distance <= 0.8) {
+      // Within 800 meters - acceptable
+      score += 20;
+      reasons.push(
+        `⚠️ Proof submitted nearby (${(distance * 1000).toFixed(0)}m away)`
+      );
+    } else if (distance <= 2.0) {
+      // Within 2km - questionable but some points
+      score += 10;
+      reasons.push(
+        `⚠️ Proof submitted from distant location (${
+          distance > 1
+            ? distance.toFixed(1) + 'km'
+            : (distance * 1000).toFixed(0) + 'm'
+        } away)`
+      );
+    } else {
+      // Too far away
+      reasons.push(
+        `❌ Proof submitted too far away (${
+          distance > 1
+            ? distance.toFixed(1) + 'km'
+            : (distance * 1000).toFixed(0) + 'm'
+        } away)`
+      );
+    }
+
+    // Bonus for verified location flag (even if distance is imperfect)
+    if (proofMetadata.locationVerified) {
+      score += 15; // Additional points for user-confirmed verification
+      reasons.push('✅ User confirmed location verification');
+    }
+  } else {
+    // Existing fallback logic remains the same...
+    try {
+      const imageGPS = await extractGPSFromImageEXIF(proofImageUrl);
+      if (imageGPS) {
+        const distance = calculateDistance(
+          { lat: reportLocation.latitude, lng: reportLocation.longitude },
+          imageGPS
+        );
+
+        if (distance <= 0.1) {
+          score += 40;
+          reasons.push(
+            `✅ Image GPS confirms location (${(distance * 1000).toFixed(0)}m)`
+          );
+        } else if (distance <= 0.5) {
           score += 25;
           reasons.push(
             `✅ Image GPS nearby (${(distance * 1000).toFixed(0)}m)`
