@@ -1,4 +1,4 @@
-// lib/screens/map/trash_map_view_screen.dart - UPDATED WITH REUSABLE ANIMATIONS
+// lib/screens/map/trash_map_view_screen.dart - FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -31,13 +31,35 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
   String _selectedFilter = 'all';
   TrashReportModel? _selectedReport;
 
+  // Animation controllers for better control
+  late AnimationController _bottomSheetController;
+  late Animation<double> _bottomSheetAnimation;
+
   // Map bounds for fitting markers
   LatLng _defaultCenter = const LatLng(6.9271, 79.8612); // Colombo default
 
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _loadReportsAndLocation();
+  }
+
+  void _initializeAnimations() {
+    _bottomSheetController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _bottomSheetAnimation = CurvedAnimation(
+      parent: _bottomSheetController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _bottomSheetController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadReportsAndLocation() async {
@@ -54,9 +76,19 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
       await _createMarkers();
     } catch (e) {
       print('Error loading data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load map data: $e'),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
     }
 
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -168,9 +200,11 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
       );
     }
 
-    setState(() {
-      _markers = markers;
-    });
+    if (mounted) {
+      setState(() {
+        _markers = markers;
+      });
+    }
   }
 
   Future<BitmapDescriptor> _createCustomMarkerIcon(
@@ -203,6 +237,8 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
       _selectedReport = report;
     });
 
+    _bottomSheetController.forward();
+
     // Move camera to selected report
     _mapController?.animateCamera(
       CameraUpdate.newLatLngZoom(
@@ -213,19 +249,25 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
   }
 
   void _closeBottomSheet() {
-    setState(() {
-      _selectedReport = null;
+    _bottomSheetController.reverse().then((_) {
+      if (mounted) {
+        setState(() {
+          _selectedReport = null;
+        });
+      }
     });
   }
 
   Future<void> _openGoogleMapsRoute(LatLng destination) async {
     if (_currentPosition == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Current location not available'),
-          backgroundColor: AppTheme.warningOrange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Current location not available'),
+            backgroundColor: AppTheme.warningOrange,
+          ),
+        );
+      }
       return;
     }
 
@@ -239,12 +281,14 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
         throw 'Could not launch $url';
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not open Google Maps'),
-          backgroundColor: AppTheme.dangerRed,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open Google Maps'),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
     }
   }
 
@@ -293,39 +337,34 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
                   onTap: (_) => _closeBottomSheet(),
                 ),
 
-                // Filter Section (Animated)
+                // Filter Section (Fixed)
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: SlideInAnimation(
-                    beginOffset: const Offset(0, -1),
-                    duration: AnimationConstants.extraSlowDuration,
-                    curve: AnimationConstants.bounceCurve,
-                    child: _buildFilterSection(),
-                  ),
+                  child: _buildFilterSection(),
                 ),
 
                 // Stats Card
-                Positioned(
-                  top: 120,
-                  left: 16,
-                  child: ScaleInAnimation(
-                    delay: AnimationConstants.mediumDelay,
-                    child: _buildStatsCard(),
-                  ),
-                ),
+                Positioned(top: 120, left: 16, child: _buildStatsCard()),
 
-                // Bottom Sheet for Selected Report
+                // Bottom Sheet for Selected Report (Fixed Animation)
                 if (_selectedReport != null)
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: SlideUpBottomSheet(
-                      isVisible: _selectedReport != null,
-                      onDismiss: _closeBottomSheet,
-                      child: _buildSelectedReportSheet(),
+                    child: AnimatedBuilder(
+                      animation: _bottomSheetAnimation,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(
+                            0,
+                            280 * (1 - _bottomSheetAnimation.value),
+                          ),
+                          child: _buildSelectedReportSheet(),
+                        );
+                      },
                     ),
                   ),
               ],
@@ -334,6 +373,46 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
   }
 
   Widget _buildFilterSection() {
+    // Get filter options with safe list handling
+    final filterOptions = [
+      {
+        'value': 'all',
+        'label': 'All',
+        'icon': Icons.view_list,
+        'count': _reports.length,
+      },
+      {
+        'value': 'general',
+        'label': 'General',
+        'icon': Icons.delete_outline,
+        'count': _reports.where((r) => r.trashType == 'general').length,
+      },
+      {
+        'value': 'recyclable',
+        'label': 'Recyclable',
+        'icon': Icons.recycling,
+        'count': _reports.where((r) => r.trashType == 'recyclable').length,
+      },
+      {
+        'value': 'hazardous',
+        'label': 'Hazardous',
+        'icon': Icons.warning,
+        'count': _reports.where((r) => r.trashType == 'hazardous').length,
+      },
+      {
+        'value': 'large',
+        'label': 'Large',
+        'icon': Icons.chair,
+        'count': _reports.where((r) => r.trashType == 'large').length,
+      },
+      {
+        'value': 'organic',
+        'label': 'Organic',
+        'icon': Icons.eco,
+        'count': _reports.where((r) => r.trashType == 'organic').length,
+      },
+    ];
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -348,45 +427,22 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: StaggeredListAnimation(
-          direction: Axis.horizontal,
-          itemDelay: const Duration(
-            milliseconds: AnimationConstants.staggerDelayMs,
-          ),
-          beginOffset: const Offset(0.3, 0),
-          children: [
-            _buildFilterChip('all', 'All', Icons.view_list, _reports.length),
-            _buildFilterChip(
-              'general',
-              'General',
-              Icons.delete_outline,
-              _reports.where((r) => r.trashType == 'general').length,
-            ),
-            _buildFilterChip(
-              'recyclable',
-              'Recyclable',
-              Icons.recycling,
-              _reports.where((r) => r.trashType == 'recyclable').length,
-            ),
-            _buildFilterChip(
-              'hazardous',
-              'Hazardous',
-              Icons.warning,
-              _reports.where((r) => r.trashType == 'hazardous').length,
-            ),
-            _buildFilterChip(
-              'large',
-              'Large',
-              Icons.chair,
-              _reports.where((r) => r.trashType == 'large').length,
-            ),
-            _buildFilterChip(
-              'organic',
-              'Organic',
-              Icons.eco,
-              _reports.where((r) => r.trashType == 'organic').length,
-            ),
-          ],
+        child: Row(
+          children: filterOptions.asMap().entries.map((entry) {
+            final index = entry.key;
+            final option = entry.value;
+
+            return AnimatedContainer(
+              duration: Duration(milliseconds: 300 + (index * 100)),
+              curve: Curves.easeOutBack,
+              child: _buildFilterChip(
+                option['value'] as String,
+                option['label'] as String,
+                option['icon'] as IconData,
+                option['count'] as int,
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
@@ -402,8 +458,8 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: AnimatedContainer(
-        duration: AnimationConstants.fastDuration,
-        curve: AnimationConstants.smoothCurve,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         child: FilterChip(
           avatar: Icon(
             icon,
@@ -416,7 +472,7 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
               Text(label),
               const SizedBox(width: 4),
               AnimatedContainer(
-                duration: AnimationConstants.fastDuration,
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isSelected
@@ -454,8 +510,8 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
   Widget _buildStatsCard() {
     final filteredCount = _filteredReports.length;
     return AnimatedContainer(
-      duration: AnimationConstants.mediumDuration,
-      curve: AnimationConstants.smoothCurve,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppTheme.surfaceLight,
@@ -471,13 +527,7 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PulseAnimation(
-            child: Icon(
-              Icons.location_on,
-              size: 16,
-              color: AppTheme.primaryGreen,
-            ),
-          ),
+          Icon(Icons.location_on, size: 16, color: AppTheme.primaryGreen),
           const SizedBox(width: 6),
           Text(
             '$filteredCount Report${filteredCount != 1 ? 's' : ''}',
@@ -539,80 +589,71 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
                 children: [
                   Row(
                     children: [
-                      ScaleInAnimation(
-                        duration: AnimationConstants.mediumDuration,
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Helpers.getSeverityColor(
-                              report.severity,
-                            ).withOpacity(0.1),
-                          ),
-                          child: Icon(
-                            _getTrashTypeIcon(report.trashType),
-                            color: Helpers.getSeverityColor(report.severity),
-                            size: 24,
-                          ),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Helpers.getSeverityColor(
+                            report.severity,
+                          ).withOpacity(0.1),
+                        ),
+                        child: Icon(
+                          _getTrashTypeIcon(report.trashType),
+                          color: Helpers.getSeverityColor(report.severity),
+                          size: 24,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: SlideInAnimation(
-                          beginOffset: const Offset(0.3, 0),
-                          delay: const Duration(milliseconds: 100),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                Helpers.getTrashTypeDisplayName(
-                                  report.trashType,
-                                ),
-                                style: AppTheme.headlineMedium,
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getStatusColor(
-                                        report.status,
-                                      ).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _getStatusDisplayName(report.status),
-                                      style: AppTheme.bodyMedium.copyWith(
-                                        fontSize: 12,
-                                        color: _getStatusColor(report.status),
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              Helpers.getTrashTypeDisplayName(report.trashType),
+                              style: AppTheme.headlineMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(
+                                      report.status,
+                                    ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    _getStatusDisplayName(report.status),
+                                    style: AppTheme.bodyMedium.copyWith(
+                                      fontSize: 12,
+                                      color: _getStatusColor(report.status),
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  if (distance != null) ...[
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.location_on,
-                                      size: 14,
-                                      color: AppTheme.textSecondary,
+                                ),
+                                if (distance != null) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.location_on,
+                                    size: 14,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    Helpers.formatDistance(distance),
+                                    style: AppTheme.bodyMedium.copyWith(
+                                      fontSize: 12,
                                     ),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      Helpers.formatDistance(distance),
-                                      style: AppTheme.bodyMedium.copyWith(
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ],
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                       IconButton(
@@ -624,53 +665,46 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
 
                   const SizedBox(height: 16),
 
-                  SlideInAnimation(
-                    beginOffset: const Offset(0, 0.2),
-                    delay: const Duration(milliseconds: 200),
-                    child: Text(
-                      report.address,
-                      style: AppTheme.bodyMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Text(
+                    report.address,
+                    style: AppTheme.bodyMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
 
                   const SizedBox(height: 16),
 
-                  SlideInAnimation(
-                    beginOffset: const Offset(0, 0.3),
-                    delay: const Duration(milliseconds: 300),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                PageTransitions.slideFromRight(
-                                  page: ReportDetailScreen(report: report),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.info_outline, size: 18),
-                            label: const Text('View Details'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _openGoogleMapsRoute(
-                              LatLng(
-                                report.location.latitude,
-                                report.location.longitude,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ReportDetailScreen(report: report),
                               ),
-                            ),
-                            icon: const Icon(Icons.directions, size: 18),
-                            label: const Text('Get Directions'),
-                          ),
+                            );
+                          },
+                          icon: const Icon(Icons.info_outline, size: 18),
+                          label: const Text('View Details'),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _openGoogleMapsRoute(
+                            LatLng(
+                              report.location.latitude,
+                              report.location.longitude,
+                            ),
+                          ),
+                          icon: const Icon(Icons.directions, size: 18),
+                          label: const Text('Get Directions'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -703,6 +737,10 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
   }
 
   LatLngBounds _boundsFromLatLngList(List<LatLng> list) {
+    if (list.isEmpty) {
+      return LatLngBounds(southwest: _defaultCenter, northeast: _defaultCenter);
+    }
+
     double minLat = list.first.latitude;
     double maxLat = list.first.latitude;
     double minLng = list.first.longitude;
