@@ -1,4 +1,4 @@
-// functions/src/enhanced_cleanup_verification.ts
+// functions/src/enhanced_cleanup_verification.ts - FIXED VERSION
 
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
@@ -29,19 +29,18 @@ export const verifyCleanupProof = functions.firestore
     const beforeData = change.before.data();
     const afterData = change.after.data();
     const reportId = context.params.reportId;
+
     if (beforeData.proofURL === afterData.proofURL || !afterData.proofURL) {
       return null;
     }
 
     try {
-      // Reset verification state
       await change.after.ref.update({
         proofVerification: admin.firestore.FieldValue.delete(),
         status: 'processing',
         disputeResolved: false,
       });
 
-      // Run comprehensive verification
       const verification = await performEnhancedVerification({
         originalImageUrl: afterData.imageURL,
         proofImageUrl: afterData.proofURL,
@@ -67,7 +66,7 @@ export const verifyCleanupProof = functions.firestore
           methods: verification.methods,
           requiresManualReview: verification.requiresManualReview,
           analyzedAt: admin.firestore.FieldValue.serverTimestamp(),
-          verificationVersion: '3.0',
+          verificationVersion: '3.1', // Updated version
         },
         status: finalStatus,
         disputeResolved: verification.verified,
@@ -90,7 +89,7 @@ export const verifyCleanupProof = functions.firestore
     }
   });
 
-// Core verification pipeline
+// FIXED: Core verification pipeline with better logic
 async function performEnhancedVerification(params: {
   originalImageUrl: string;
   proofImageUrl: string;
@@ -112,9 +111,9 @@ async function performEnhancedVerification(params: {
   let requiresManualReview = false;
   let fraudIndicators = 0;
 
-  // ----------- Scene matching analysis ------------
+  // Scene matching - FIXED: Less aggressive, cleanup-aware
   try {
-    const sceneResult = await performAdvancedSceneMatching(
+    const sceneResult = await performCleanupAwareSceneMatching(
       params.originalImageUrl,
       params.proofImageUrl
     );
@@ -126,9 +125,9 @@ async function performEnhancedVerification(params: {
     requiresManualReview = true;
   }
 
-  // ----------- Trash analysis ------------
+  // Trash analysis - FIXED: More reasonable thresholds
   try {
-    const trashResult = await performStrictTrashAnalysis(
+    const trashResult = await performReasonableTrashAnalysis(
       params.originalImageUrl,
       params.proofImageUrl
     );
@@ -140,7 +139,7 @@ async function performEnhancedVerification(params: {
     requiresManualReview = true;
   }
 
-  // ----------- Location proximity analysis ------------
+  // Location proximity - keep existing
   try {
     const locationResult = await verifyLocationProximity(
       params.reportLocation,
@@ -154,7 +153,7 @@ async function performEnhancedVerification(params: {
     requiresManualReview = true;
   }
 
-  // ----------- Time/timestamp analysis ------------
+  // Timestamp analysis - keep existing
   try {
     const timeResult = performStrictTemporalVerification(
       params.reportTimestamp,
@@ -168,7 +167,7 @@ async function performEnhancedVerification(params: {
     requiresManualReview = true;
   }
 
-  // ----------- Image metadata/uniqueness/authenticity ------------
+  // Image metadata - keep existing
   try {
     const metaResult = await analyzeImageMetadata(
       params.proofImageUrl,
@@ -181,29 +180,30 @@ async function performEnhancedVerification(params: {
     reasons.push('⚠️ Metadata analysis failed');
   }
 
-  // Aggregate scoring with weights
+  // FIXED: More reasonable confidence calculation
   const confidence = Math.round(
-    methods.sceneMatching * 0.25 +
-      methods.trashAnalysis * 0.25 +
-      methods.locationProximity * 0.2 +
-      methods.timestampValidity * 0.2 +
-      methods.imageMetadata * 0.1
+    methods.sceneMatching * 0.2 + // Reduced weight
+      methods.trashAnalysis * 0.35 + // Increased weight - most important
+      methods.locationProximity * 0.25 +
+      methods.timestampValidity * 0.15 +
+      methods.imageMetadata * 0.05
   );
 
   methods.fraudIndicators = fraudIndicators;
 
-  // ----------- Decision -----------
+  // FIXED: More reasonable decision logic
   let verified = false;
-  // Hard block if fraudIndicators is too high or any fatal reason is found
-  const FRAUD_HARD_FAIL_THRESHOLD = 25;
-  const CONFIDENCE_PASS_THRESHOLD = 75;
-  const CONFIDENCE_REVIEW_LOW = 55;
+  const FRAUD_HARD_FAIL_THRESHOLD = 40; // Increased threshold
+  const CONFIDENCE_PASS_THRESHOLD = 60; // Lowered threshold
+  const CONFIDENCE_REVIEW_LOW = 45; // Lowered threshold
 
   if (fraudIndicators >= FRAUD_HARD_FAIL_THRESHOLD) {
-    reasons.push('🚨 Multiple fraud indicators detected. Submission blocked.');
+    reasons.push(
+      '🚨 Multiple serious fraud indicators detected. Submission blocked.'
+    );
     verified = false;
     requiresManualReview = false;
-  } else if (confidence >= CONFIDENCE_PASS_THRESHOLD && fraudIndicators < 10) {
+  } else if (confidence >= CONFIDENCE_PASS_THRESHOLD && fraudIndicators < 20) {
     reasons.push('🎉 Cleanup verification PASSED - all checks successful');
     verified = true;
   } else if (
@@ -212,7 +212,7 @@ async function performEnhancedVerification(params: {
   ) {
     requiresManualReview = true;
     reasons.push(
-      '⚠️ Borderline confidence or minor fraud risk. Flagged for manual review.'
+      '⚠️ Borderline confidence or minor concerns. Flagged for manual review.'
     );
     verified = false;
   } else {
@@ -229,8 +229,8 @@ async function performEnhancedVerification(params: {
   };
 }
 
-// ----------- Scene matching -------------
-async function performAdvancedSceneMatching(
+// FIXED: Cleanup-aware scene matching
+async function performCleanupAwareSceneMatching(
   originalUrl: string,
   proofUrl: string
 ): Promise<{ score: number; reasons: string[]; fraudIndicators: number }> {
@@ -244,10 +244,8 @@ async function performAdvancedSceneMatching(
       { type: 'LANDMARK_DETECTION', maxResults: 10 },
       { type: 'OBJECT_LOCALIZATION', maxResults: 20 },
       { type: 'TEXT_DETECTION', maxResults: 15 },
-      { type: 'FACE_DETECTION', maxResults: 5 },
       { type: 'LABEL_DETECTION', maxResults: 25 },
       { type: 'IMAGE_PROPERTIES' },
-      { type: 'LOGO_DETECTION', maxResults: 10 },
     ],
   });
 
@@ -257,10 +255,8 @@ async function performAdvancedSceneMatching(
       { type: 'LANDMARK_DETECTION', maxResults: 10 },
       { type: 'OBJECT_LOCALIZATION', maxResults: 20 },
       { type: 'TEXT_DETECTION', maxResults: 15 },
-      { type: 'FACE_DETECTION', maxResults: 5 },
       { type: 'LABEL_DETECTION', maxResults: 25 },
       { type: 'IMAGE_PROPERTIES' },
-      { type: 'LOGO_DETECTION', maxResults: 10 },
     ],
   });
 
@@ -269,37 +265,46 @@ async function performAdvancedSceneMatching(
     originalResult.landmarkAnnotations || [],
     proofResult.landmarkAnnotations || []
   );
-  if (landmarkScore > 0.8) {
-    score += 40;
+  if (landmarkScore > 0.7) {
+    score += 50;
     reasons.push(
-      `✅ Strong landmark/building match (${(landmarkScore * 100).toFixed(1)}%)`
+      `✅ Strong landmark match (${(landmarkScore * 100).toFixed(1)}%)`
     );
-  } else if (landmarkScore > 0.5) {
-    score += 25;
+  } else if (landmarkScore > 0.4) {
+    score += 30;
     reasons.push(
       `✅ Partial landmark match (${(landmarkScore * 100).toFixed(1)}%)`
     );
   } else if (
     landmarkScore === 0 &&
-    (originalResult.landmarkAnnotations?.length || 0) > 0
+    (originalResult.landmarkAnnotations?.length || 0) > 2
   ) {
-    fraudIndicators += 20;
-    reasons.push('⚠️ No landmark matches found - possibly different location');
+    // FIXED: Only penalize if there were clear landmarks that disappeared
+    fraudIndicators += 10; // Reduced penalty
+    reasons.push(
+      '⚠️ Some landmarks not found - may be angle/lighting difference'
+    );
   }
 
-  // Scene structure/object matching
-  const objectScore = compareObjectLayout(
+  // FIXED: More lenient object structure matching for cleanups
+  const objectScore = compareObjectLayoutForCleanup(
     originalResult.localizedObjectAnnotations || [],
     proofResult.localizedObjectAnnotations || []
   );
-  if (objectScore > 0.6) {
+  if (objectScore > 0.5) {
     score += 30;
     reasons.push(
-      `✅ Scene structure matches (${(objectScore * 100).toFixed(1)}%)`
+      `✅ Scene structure consistent (${(objectScore * 100).toFixed(1)}%)`
     );
-  } else if (objectScore < 0.3) {
-    fraudIndicators += 15;
-    reasons.push('⚠️ Scene structure significantly different');
+  } else if (objectScore > 0.25) {
+    score += 15;
+    reasons.push('✅ Scene structure partially matches - expected for cleanup');
+  } else {
+    // FIXED: Don't heavily penalize structure differences in cleanups
+    fraudIndicators += 5; // Much reduced penalty
+    reasons.push(
+      '⚠️ Scene structure different - may indicate successful cleanup'
+    );
   }
 
   // Text/signage consistency
@@ -307,35 +312,24 @@ async function performAdvancedSceneMatching(
     originalResult.textAnnotations || [],
     proofResult.textAnnotations || []
   );
-  if (textScore > 0.7) {
+  if (textScore > 0.6) {
     score += 20;
-    reasons.push(`✅ Text/signage matches (${(textScore * 100).toFixed(1)}%)`);
+    reasons.push(
+      `✅ Text/signage consistent (${(textScore * 100).toFixed(1)}%)`
+    );
   } else if (
     textScore === 0 &&
     (originalResult.textAnnotations?.length || 0) > 3
   ) {
-    fraudIndicators += 10;
-    reasons.push('⚠️ Expected text/signs not found in proof image');
-  }
-
-  // Color palette (environmental match)
-  const colorScore = compareColorPalettes(
-    originalResult.imagePropertiesAnnotation,
-    proofResult.imagePropertiesAnnotation
-  );
-  if (colorScore > 0.8) {
-    score += 10;
-    reasons.push('✅ Environmental colors consistent');
-  } else if (colorScore < 0.4) {
-    fraudIndicators += 5;
-    reasons.push('⚠️ Significant color differences detected');
+    fraudIndicators += 5; // Reduced penalty
+    reasons.push('⚠️ Some text/signs not visible - may be angle difference');
   }
 
   return { score: Math.min(100, score), reasons, fraudIndicators };
 }
 
-// ----------- Trash reduction/cleanliness -------------
-async function performStrictTrashAnalysis(
+// FIXED: More reasonable trash analysis
+async function performReasonableTrashAnalysis(
   originalUrl: string,
   proofUrl: string
 ): Promise<{ score: number; reasons: string[]; fraudIndicators: number }> {
@@ -343,7 +337,6 @@ async function performStrictTrashAnalysis(
   let score = 0;
   let fraudIndicators = 0;
 
-  // Trash & clean keywords
   const trashKeywords = [
     'trash',
     'garbage',
@@ -381,14 +374,12 @@ async function performStrictTrashAnalysis(
     'spotless',
   ];
 
-  // Analyze both images
   const [originalResult] = await visionClient.labelDetection(originalUrl);
   const [proofResult] = await visionClient.labelDetection(proofUrl);
 
   const originalLabels = originalResult.labelAnnotations || [];
   const proofLabels = proofResult.labelAnnotations || [];
 
-  // Trash/clean object extraction
   const originalTrash = originalLabels.filter((label) =>
     trashKeywords.some((keyword) =>
       label.description?.toLowerCase().includes(keyword.toLowerCase())
@@ -405,11 +396,10 @@ async function performStrictTrashAnalysis(
     )
   );
 
-  // Trash reduction
   if (originalTrash.length === 0) {
-    reasons.push('⚠️ No trash detected in original image - suspicious');
-    fraudIndicators += 20;
-    return { score: 0, reasons, fraudIndicators };
+    reasons.push('⚠️ No trash detected in original image');
+    fraudIndicators += 10; // Reduced penalty
+    return { score: 20, reasons, fraudIndicators }; // Don't completely fail
   }
 
   const trashReductionRatio =
@@ -420,51 +410,140 @@ async function performStrictTrashAnalysis(
         )
       : 0;
 
-  if (trashReductionRatio >= 0.8) {
-    score += 60;
+  // FIXED: More reasonable thresholds
+  if (trashReductionRatio >= 0.7) {
+    score += 70;
     reasons.push(
-      `✅ Significant trash removal detected (${(
-        trashReductionRatio * 100
-      ).toFixed(1)}% reduction)`
+      `✅ Excellent trash removal (${(trashReductionRatio * 100).toFixed(
+        1
+      )}% reduction)`
     );
-  } else if (trashReductionRatio >= 0.5) {
-    score += 40;
+  } else if (trashReductionRatio >= 0.4) {
+    score += 55;
+    reasons.push(
+      `✅ Good trash removal (${(trashReductionRatio * 100).toFixed(
+        1
+      )}% reduction)`
+    );
+  } else if (trashReductionRatio >= 0.15) {
+    // FIXED: Much lower threshold
+    score += 35;
     reasons.push(
       `✅ Moderate trash removal (${(trashReductionRatio * 100).toFixed(
         1
       )}% reduction)`
     );
-  } else if (trashReductionRatio >= 0.2) {
-    score += 20;
+    // Don't add fraud indicators for moderate cleanup
+  } else if (trashReductionRatio > 0) {
+    score += 15;
     reasons.push(
       `⚠️ Minimal trash removal (${(trashReductionRatio * 100).toFixed(
         1
       )}% reduction)`
     );
-    fraudIndicators += 10;
+    fraudIndicators += 5; // Much reduced penalty
   } else {
-    reasons.push(
-      `❌ No significant trash removal detected (${(
-        trashReductionRatio * 100
-      ).toFixed(1)}% reduction)`
-    );
-    fraudIndicators += 25;
+    reasons.push('❌ No trash removal detected');
+    fraudIndicators += 15; // Reduced penalty
   }
 
   if (cleanIndicators.length > 0) {
-    score += 15;
-    reasons.push('✅ Clean environment detected in proof image');
+    score += 20;
+    reasons.push('✅ Clean environment indicators found');
   }
 
-  if (proofTrash.length > originalTrash.length) {
-    reasons.push(
-      '❌ More trash detected in proof than original - highly suspicious'
-    );
-    fraudIndicators += 30;
+  // FIXED: Only heavily penalize if there's MORE trash
+  if (proofTrash.length > originalTrash.length * 1.2) {
+    // Allow for some variation
+    reasons.push('❌ More trash detected in proof - highly suspicious');
+    fraudIndicators += 25;
     score = Math.max(0, score - 40);
   }
 
   return { score: Math.min(100, score), reasons, fraudIndicators };
+}
+
+// FIXED: Better object layout comparison for cleanups
+function compareObjectLayoutForCleanup(
+  objects1: any[],
+  objects2: any[]
+): number {
+  if (!objects1.length && !objects2.length) return 1.0;
+  if (!objects1.length || !objects2.length) return 0.3; // Some tolerance
+
+  // Extract permanent objects (buildings, infrastructure) vs temporary (trash, cars)
+  const permanentObjects = [
+    'building',
+    'wall',
+    'fence',
+    'tree',
+    'sign',
+    'pole',
+  ];
+
+  const permanent1 = objects1.filter((obj) =>
+    permanentObjects.some((p) => obj.name?.toLowerCase().includes(p))
+  );
+  const permanent2 = objects2.filter((obj) =>
+    permanentObjects.some((p) => obj.name?.toLowerCase().includes(p))
+  );
+
+  // Focus comparison on permanent structures
+  const names1 = permanent1
+    .map((obj) => obj.name?.toLowerCase())
+    .filter(Boolean);
+  const names2 = permanent2
+    .map((obj) => obj.name?.toLowerCase())
+    .filter(Boolean);
+
+  if (names1.length === 0 && names2.length === 0) {
+    // If no permanent objects detected, be more lenient
+    const allNames1 = objects1
+      .map((obj) => obj.name?.toLowerCase())
+      .filter(Boolean);
+    const allNames2 = objects2
+      .map((obj) => obj.name?.toLowerCase())
+      .filter(Boolean);
+    const intersection = allNames1.filter((name) => allNames2.includes(name));
+    return (
+      (intersection.length /
+        Math.max(Math.max(allNames1.length, allNames2.length), 1)) *
+      0.6
+    ); // Reduced weight
+  }
+
+  const intersection = names1.filter((name) => names2.includes(name));
+  const union = Array.from(new Set([...names1, ...names2]));
+  return intersection.length / Math.max(union.length, 1);
+}
+
+// Keep the existing helper functions but with the new object layout comparison
+function compareLandmarks(landmarks1: any[], landmarks2: any[]): number {
+  if (!landmarks1.length || !landmarks2.length) return 0;
+  const names1 = landmarks1
+    .map((l: any) => l.description?.toLowerCase())
+    .filter(Boolean);
+  const names2 = landmarks2
+    .map((l: any) => l.description?.toLowerCase())
+    .filter(Boolean);
+  const intersection = names1.filter((name: string) => names2.includes(name));
+  const union = Array.from(new Set([...names1, ...names2]));
+  return intersection.length / Math.max(union.length, 1);
+}
+
+function compareTextElements(texts1: any[], texts2: any[]): number {
+  if (!texts1.length || !texts2.length) return 0;
+  const words1 = texts1
+    .map((t: any) => t.description?.toLowerCase().split(/\s+/))
+    .flat()
+    .filter((w: string) => w && w.length > 2);
+  const words2 = texts2
+    .map((t: any) => t.description?.toLowerCase().split(/\s+/))
+    .flat()
+    .filter((w: string) => w && w.length > 2);
+  const intersection = words1.filter((w: string) => words2.includes(w));
+  const union = Array.from(new Set([...words1, ...words2]));
+  return intersection.length / Math.max(union.length, 1);
 }
 
 // ----------- Stricter location proximity (GPS) -------------
@@ -475,7 +554,9 @@ async function verifyLocationProximity(
   const reasons: string[] = [];
   let score = 0;
   let fraudIndicators = 0;
-  const maxAllowedDistance = 0.1; // 100 meters
+
+  // INCREASED tolerance for cleanup locations
+  const maxAllowedDistance = 0.5; // 500 meters instead of 100m
 
   if (proofMetadata?.submissionLocation) {
     const submissionLocation = proofMetadata.submissionLocation;
@@ -483,14 +564,34 @@ async function verifyLocationProximity(
       { lat: reportLocation.latitude, lng: reportLocation.longitude },
       { lat: submissionLocation.latitude, lng: submissionLocation.longitude }
     );
-    if (distance <= maxAllowedDistance) {
+
+    if (distance <= 0.1) {
+      // Within 100m - perfect
       score = 100;
       reasons.push(
-        `✅ Proof submitted from correct location (${(distance * 1000).toFixed(
+        `✅ Proof submitted from exact location (${(distance * 1000).toFixed(
           0
         )}m away)`
       );
+    } else if (distance <= maxAllowedDistance) {
+      // Within 500m - good
+      score = 80;
+      reasons.push(
+        `✅ Proof submitted from nearby location (${(distance * 1000).toFixed(
+          0
+        )}m away)`
+      );
+    } else if (distance <= 1.0) {
+      // Within 1km - acceptable
+      score = 50;
+      reasons.push(
+        `⚠️ Proof submitted from distant location (${(distance * 1000).toFixed(
+          0
+        )}m away)`
+      );
+      fraudIndicators += 5; // Reduced penalty
     } else if (distance > 2) {
+      // Beyond 2km - suspicious
       reasons.push(
         `❌ Proof submitted too far away (${distance.toFixed(2)} km)`
       );
@@ -498,9 +599,7 @@ async function verifyLocationProximity(
       score = 0;
     } else {
       reasons.push(
-        `⚠️ Proof submitted from distant location (${(distance * 1000).toFixed(
-          0
-        )}m)`
+        `⚠️ Proof submitted from distant location (${distance.toFixed(2)} km)`
       );
       fraudIndicators += 10;
       score = 30;
@@ -622,72 +721,6 @@ async function analyzeImageMetadata(
   }
 
   return { score: Math.min(100, score), reasons, fraudIndicators };
-}
-
-// ----------- Util functions for matching ----------
-
-// Landmarks: strict intersection ratio
-function compareLandmarks(landmarks1: any[], landmarks2: any[]): number {
-  if (!landmarks1.length || !landmarks2.length) return 0;
-  const names1 = landmarks1
-    .map((l: any) => l.description?.toLowerCase())
-    .filter(Boolean);
-  const names2 = landmarks2
-    .map((l: any) => l.description?.toLowerCase())
-    .filter(Boolean);
-  const intersection = names1.filter((name: string) => names2.includes(name));
-  const union = Array.from(new Set([...names1, ...names2]));
-  return intersection.length / Math.max(union.length, 1);
-}
-
-function compareObjectLayout(objects1: any[], objects2: any[]): number {
-  if (!objects1.length || !objects2.length) return 0;
-  const names1 = objects1
-    .map((obj: any) => obj.name?.toLowerCase())
-    .filter(Boolean);
-  const names2 = objects2
-    .map((obj: any) => obj.name?.toLowerCase())
-    .filter(Boolean);
-  const intersection = names1.filter((name: string) => names2.includes(name));
-  const union = Array.from(new Set([...names1, ...names2]));
-  return intersection.length / Math.max(union.length, 1);
-}
-
-function compareTextElements(texts1: any[], texts2: any[]): number {
-  if (!texts1.length || !texts2.length) return 0;
-  const words1 = texts1
-    .map((t: any) => t.description?.toLowerCase().split(/\s+/))
-    .flat()
-    .filter((w: string) => w && w.length > 2);
-  const words2 = texts2
-    .map((t: any) => t.description?.toLowerCase().split(/\s+/))
-    .flat()
-    .filter((w: string) => w && w.length > 2);
-  const intersection = words1.filter((w: string) => words2.includes(w));
-  const union = Array.from(new Set([...words1, ...words2]));
-  return intersection.length / Math.max(union.length, 1);
-}
-
-function compareColorPalettes(colorAnn1: any, colorAnn2: any): number {
-  // Super simple: compare main color dominance
-  if (!colorAnn1?.dominantColors?.colors || !colorAnn2?.dominantColors?.colors)
-    return 0;
-  const col1 = colorAnn1.dominantColors.colors.map((c: any) => c.color);
-  const col2 = colorAnn2.dominantColors.colors.map((c: any) => c.color);
-  let matches = 0;
-  for (const c1 of col1) {
-    for (const c2 of col2) {
-      if (
-        Math.abs(c1.red - c2.red) < 40 &&
-        Math.abs(c1.green - c2.green) < 40 &&
-        Math.abs(c1.blue - c2.blue) < 40
-      ) {
-        matches++;
-        break;
-      }
-    }
-  }
-  return matches / Math.max(col1.length, 1);
 }
 
 // Haversine formula for lat/lng (km)
