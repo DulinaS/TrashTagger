@@ -2,6 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:geolocator/geolocator.dart';
@@ -131,14 +132,11 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
       return;
     }
 
-    final url =
-        'https://www.google.com/maps/dir/${_currentPosition!.latitude},${_currentPosition!.longitude}/${widget.report.location.latitude},${widget.report.location.longitude}';
     try {
-      if (await canLaunchUrl(Uri.parse(url))) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Could not launch Google Maps';
-      }
+      await MapsLauncher.launchCoordinates(
+        widget.report.location.latitude,
+        widget.report.location.longitude,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +145,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
               children: [
                 Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 8),
-                const Text('Could not open Google Maps'),
+                const Text('Could not open maps'),
               ],
             ),
             backgroundColor: AppTheme.dangerRed,
