@@ -1,13 +1,16 @@
-// lib/screens/map/map_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:trash_tagger/screens/map/report_detail_Screen.dart';
+import 'package:trash_tagger/screens/map/report_detail_screen.dart';
+import 'package:trash_tagger/screens/map/trash_map_view_screen.dart';
 import '../../themes/app_theme.dart';
 import '../../models/trash_report_model.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/page_transitions.dart';
+import '../../animations/animation_constants.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -118,6 +121,17 @@ class _MapScreenState extends State<MapScreen> {
         .toList();
   }
 
+  void _navigateToMapView() {
+    Navigator.push(
+      context,
+      PageTransitions.slideAndFade(
+        page: const TrashMapViewScreen(),
+        duration: AnimationConstants.mediumDuration,
+        beginOffset: const Offset(0.0, 1.0),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,7 +148,12 @@ class _MapScreenState extends State<MapScreen> {
       body: Column(
         children: [
           // Filter Section
-          _buildFilterSection(),
+          SlideInAnimation(
+            beginOffset: const Offset(0, -0.3),
+            duration: AnimationConstants.slowDuration,
+            curve: AnimationConstants.bounceCurve,
+            child: _buildFilterSection(),
+          ),
 
           // Reports List
           Expanded(
@@ -144,6 +163,22 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
+      floatingActionButton: AnimatedFAB(
+        onPressed: _navigateToMapView,
+        heroTag: "mapViewFAB",
+        backgroundColor: AppTheme.primaryGreen,
+        foregroundColor: Colors.white,
+        delay: AnimationConstants.longDelay,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.map_outlined),
+            SizedBox(width: 8),
+            Text('Map View'),
+          ],
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -158,12 +193,38 @@ class _MapScreenState extends State<MapScreen> {
               Icon(Icons.filter_list, color: AppTheme.primaryGreen),
               const SizedBox(width: 8),
               Text('Filter by Type', style: AppTheme.labelMedium),
+              const Spacer(),
+              // Reports counter with animation
+              AnimatedContainer(
+                duration: AnimationConstants.fastDuration,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_filteredReports.length} found',
+                  style: AppTheme.bodyMedium.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(
+            child: StaggeredListAnimation(
+              direction: Axis.horizontal,
+              itemDelay: const Duration(
+                milliseconds: AnimationConstants.staggerDelayMs,
+              ),
+              beginOffset: const Offset(0.3, 0),
               children: [
                 _buildFilterChip('all', 'All', Icons.view_list),
                 _buildFilterChip('general', 'General', Icons.delete_outline),
@@ -181,24 +242,61 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget _buildFilterChip(String value, String label, IconData icon) {
     final isSelected = _selectedFilter == value;
+    final count = value == 'all'
+        ? _nearbyReports.length
+        : _nearbyReports.where((r) => r.trashType == value).length;
+
     return Container(
       margin: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        avatar: Icon(
-          icon,
-          size: 18,
-          color: isSelected ? Colors.white : AppTheme.primaryGreen,
-        ),
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() => _selectedFilter = value);
-        },
-        selectedColor: AppTheme.primaryGreen,
-        checkmarkColor: Colors.white,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : AppTheme.primaryGreen,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      child: AnimatedContainer(
+        duration: AnimationConstants.fastDuration,
+        curve: AnimationConstants.smoothCurve,
+        child: FilterChip(
+          avatar: Icon(
+            icon,
+            size: 18,
+            color: isSelected ? Colors.white : AppTheme.primaryGreen,
+          ),
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label),
+              if (count > 0) ...[
+                const SizedBox(width: 4),
+                AnimatedContainer(
+                  duration: AnimationConstants.fastDuration,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.white.withOpacity(0.2)
+                        : AppTheme.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : AppTheme.primaryGreen,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() => _selectedFilter = value);
+          },
+          selectedColor: AppTheme.primaryGreen,
+          checkmarkColor: Colors.white,
+          labelStyle: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.primaryGreen,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ),
     );
@@ -208,40 +306,70 @@ class _MapScreenState extends State<MapScreen> {
     final reports = _filteredReports;
 
     if (reports.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.location_off, size: 80, color: AppTheme.textSecondary),
-              const SizedBox(height: 24),
-              Text(
-                _selectedFilter == 'all'
-                    ? 'No Reports Nearby'
-                    : 'No ${Helpers.getTrashTypeDisplayName(_selectedFilter)} Reports',
-                style: AppTheme.headlineMedium.copyWith(
-                  color: AppTheme.textSecondary,
+      return SlideInAnimation(
+        beginOffset: const Offset(0, 0.3),
+        delay: AnimationConstants.shortDelay,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ScaleInAnimation(
+                  child: Icon(
+                    Icons.location_off,
+                    size: 80,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _currentPosition == null
-                    ? 'Enable location to see nearby reports'
-                    : 'Be the first to report trash in your area!',
-                style: AppTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              if (_currentPosition == null) ...[
                 const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: _loadNearbyReports,
-                  icon: const Icon(Icons.location_on),
-                  label: const Text('Enable Location'),
+                SlideInAnimation(
+                  beginOffset: const Offset(0, 0.2),
+                  delay: const Duration(milliseconds: 200),
+                  child: Text(
+                    _selectedFilter == 'all'
+                        ? 'No Reports Nearby'
+                        : 'No ${Helpers.getTrashTypeDisplayName(_selectedFilter)} Reports',
+                    style: AppTheme.headlineMedium.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SlideInAnimation(
+                  beginOffset: const Offset(0, 0.2),
+                  delay: const Duration(milliseconds: 300),
+                  child: Text(
+                    _currentPosition == null
+                        ? 'Enable location to see nearby reports'
+                        : 'Be the first to report trash in your area!',
+                    style: AppTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                if (_currentPosition == null) ...[
+                  const SizedBox(height: 24),
+                  ScaleInAnimation(
+                    delay: const Duration(milliseconds: 400),
+                    child: ElevatedButton.icon(
+                      onPressed: _loadNearbyReports,
+                      icon: const Icon(Icons.location_on),
+                      label: const Text('Enable Location'),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 500),
+                  child: OutlinedButton.icon(
+                    onPressed: _navigateToMapView,
+                    icon: const Icon(Icons.map_outlined),
+                    label: const Text('View on Map'),
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       );
@@ -250,17 +378,28 @@ class _MapScreenState extends State<MapScreen> {
     return RefreshIndicator(
       onRefresh: _loadNearbyReports,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          100,
+        ), // Extra bottom padding for FAB
         itemCount: reports.length,
         itemBuilder: (context, index) {
-          final report = reports[index];
-          return _buildReportCard(report);
+          return SlideInAnimation(
+            duration: AnimationConstants.mediumDuration,
+            delay: Duration(
+              milliseconds: index * AnimationConstants.cardStaggerDelayMs,
+            ),
+            beginOffset: const Offset(0.3, 0),
+            child: _buildReportCard(reports[index], index),
+          );
         },
       ),
     );
   }
 
-  Widget _buildReportCard(TrashReportModel report) {
+  Widget _buildReportCard(TrashReportModel report, int index) {
     final distance = _currentPosition != null
         ? Geolocator.distanceBetween(
                 _currentPosition!.latitude,
@@ -273,6 +412,7 @@ class _MapScreenState extends State<MapScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
       child: InkWell(
         onTap: () => _navigateToReportDetail(report),
         borderRadius: BorderRadius.circular(12),
@@ -283,20 +423,23 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               Row(
                 children: [
-                  // Type Icon
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Helpers.getSeverityColor(
-                        report.severity,
-                      ).withOpacity(0.1),
-                    ),
-                    child: Icon(
-                      _getTrashTypeIcon(report.trashType),
-                      color: Helpers.getSeverityColor(report.severity),
-                      size: 24,
+                  // Type Icon with pulse animation
+                  PulseAnimation(
+                    duration: const Duration(seconds: 2),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Helpers.getSeverityColor(
+                          report.severity,
+                        ).withOpacity(0.1),
+                      ),
+                      child: Icon(
+                        _getTrashTypeIcon(report.trashType),
+                        color: Helpers.getSeverityColor(report.severity),
+                        size: 24,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -380,11 +523,20 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
 
-                  // Arrow
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: AppTheme.textSecondary,
+                  // Arrow with bounce animation
+                  SlideInAnimation(
+                    duration: AnimationConstants.mediumDuration,
+                    delay: Duration(
+                      milliseconds:
+                          300 + (index * AnimationConstants.cardStaggerDelayMs),
+                    ),
+                    beginOffset: const Offset(0.3, 0),
+                    curve: AnimationConstants.bounceCurve,
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -395,38 +547,48 @@ class _MapScreenState extends State<MapScreen> {
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    if (report.estimatedEffort.isNotEmpty) ...[
-                      Icon(
-                        Icons.timer_outlined,
-                        size: 16,
-                        color: AppTheme.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        report.estimatedEffort,
-                        style: AppTheme.bodyMedium.copyWith(fontSize: 12),
-                      ),
-                    ],
-                    if (report.safetyWarnings.isNotEmpty) ...[
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.warning_amber,
-                        size: 16,
-                        color: AppTheme.warningOrange,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Safety Warning',
-                        style: AppTheme.bodyMedium.copyWith(
-                          fontSize: 12,
-                          color: AppTheme.warningOrange,
-                          fontWeight: FontWeight.w600,
+                SlideInAnimation(
+                  beginOffset: const Offset(0, 0.1),
+                  delay: Duration(
+                    milliseconds:
+                        200 + (index * AnimationConstants.cardStaggerDelayMs),
+                  ),
+                  child: Row(
+                    children: [
+                      if (report.estimatedEffort.isNotEmpty) ...[
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: AppTheme.textSecondary,
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        Text(
+                          report.estimatedEffort,
+                          style: AppTheme.bodyMedium.copyWith(fontSize: 12),
+                        ),
+                      ],
+                      if (report.safetyWarnings.isNotEmpty) ...[
+                        const SizedBox(width: 16),
+                        PulseAnimation(
+                          duration: const Duration(seconds: 3),
+                          child: Icon(
+                            Icons.warning_amber,
+                            size: 16,
+                            color: AppTheme.warningOrange,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Safety Warning',
+                          style: AppTheme.bodyMedium.copyWith(
+                            fontSize: 12,
+                            color: AppTheme.warningOrange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ],
             ],
@@ -439,8 +601,9 @@ class _MapScreenState extends State<MapScreen> {
   void _navigateToReportDetail(TrashReportModel report) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ReportDetailScreen(report: report),
+      PageTransitions.slideFromRight(
+        page: ReportDetailScreen(report: report),
+        duration: AnimationConstants.mediumDuration,
       ),
     );
   }

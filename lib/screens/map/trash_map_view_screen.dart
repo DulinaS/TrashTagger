@@ -157,7 +157,7 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
       markers.add(
         Marker(
           markerId: MarkerId('report_${report.id}'),
-          position: report.location,
+          position: LatLng(report.location.latitude, report.location.longitude),
           icon: markerIcon,
           onTap: () => _selectReport(report),
           infoWindow: InfoWindow(
@@ -205,7 +205,10 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
 
     // Move camera to selected report
     _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(report.location, 17.0),
+      CameraUpdate.newLatLngZoom(
+        LatLng(report.location.latitude, report.location.longitude),
+        17.0,
+      ),
     );
   }
 
@@ -656,8 +659,12 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _openGoogleMapsRoute(report.location),
+                            onPressed: () => _openGoogleMapsRoute(
+                              LatLng(
+                                report.location.latitude,
+                                report.location.longitude,
+                              ),
+                            ),
                             icon: const Icon(Icons.directions, size: 18),
                             label: const Text('Get Directions'),
                           ),

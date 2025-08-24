@@ -1,14 +1,18 @@
-// lib/screens/map/report_detail_screen.dart
+// lib/screens/map/report_detail_screen.dart - UPDATED WITH REUSABLE ANIMATIONS
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/trash_report_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/reports_provider.dart';
 import '../../themes/app_theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/custom_button.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/animation_constants.dart';
 
 class ReportDetailScreen extends StatefulWidget {
   final TrashReportModel report;
@@ -21,56 +25,192 @@ class ReportDetailScreen extends StatefulWidget {
 
 class _ReportDetailScreenState extends State<ReportDetailScreen> {
   bool _isAccepting = false;
+  Position? _currentPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      _currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+      setState(() {});
+    } catch (e) {
+      print('Error getting current location: $e');
+    }
+  }
+
+  Future<void> _openGoogleMapsRoute() async {
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.location_off, color: Colors.white),
+              const SizedBox(width: 8),
+              const Text('Current location not available'),
+            ],
+          ),
+          backgroundColor: AppTheme.warningOrange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final url =
+        'https://www.google.com/maps/dir/${_currentPosition!.latitude},${_currentPosition!.longitude}/${widget.report.location.latitude},${widget.report.location.longitude}';
+
+    try {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch Google Maps';
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 8),
+              const Text('Could not open Google Maps'),
+            ],
+          ),
+          backgroundColor: AppTheme.dangerRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(title: const Text('Report Details'), elevation: 0),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section
-            _buildImageSection(),
+      appBar: AppBar(
+        title: const Text('Report Details'),
+        elevation: 0,
+        actions: [
+          ScaleInAnimation(
+            delay: AnimationConstants.shortDelay,
+            child: IconButton(
+              icon: const Icon(Icons.share),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Share functionality coming soon!'),
+                    backgroundColor: AppTheme.infoBlue,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      body: SlideInAnimation(
+        beginOffset: const Offset(0, 0.1),
+        duration: AnimationConstants.slowDuration,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image Section
+              _buildImageSection(),
 
-            // Details Section
-            _buildDetailsSection(),
+              // Details Section
+              SlideInAnimation(
+                beginOffset: const Offset(0, 0.2),
+                delay: const Duration(milliseconds: 200),
+                child: _buildDetailsSection(),
+              ),
 
-            // Location Section
-            _buildLocationSection(),
+              // Location Section with Directions
+              SlideInAnimation(
+                beginOffset: const Offset(0, 0.2),
+                delay: const Duration(milliseconds: 300),
+                child: _buildLocationSection(),
+              ),
 
-            // AI Analysis Section
-            if (widget.report.visionVerified) _buildAIAnalysisSection(),
+              // AI Analysis Section
+              if (widget.report.visionVerified)
+                SlideInAnimation(
+                  beginOffset: const Offset(0, 0.2),
+                  delay: const Duration(milliseconds: 400),
+                  child: _buildAIAnalysisSection(),
+                ),
 
-            // Safety Warnings
-            if (widget.report.safetyWarnings.isNotEmpty) _buildSafetySection(),
+              // Safety Warnings
+              if (widget.report.safetyWarnings.isNotEmpty)
+                SlideInAnimation(
+                  beginOffset: const Offset(0, 0.2),
+                  delay: const Duration(milliseconds: 500),
+                  child: _buildSafetySection(),
+                ),
 
-            // Action Section
-            _buildActionSection(),
+              // Action Section
+              SlideInAnimation(
+                beginOffset: const Offset(0, 0.2),
+                delay: const Duration(milliseconds: 600),
+                child: _buildActionSection(),
+              ),
 
-            const SizedBox(height: 100), // Space for bottom button
-          ],
+              const SizedBox(height: 120), // Space for bottom button
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: _buildBottomActions(),
+      bottomNavigationBar: SlideInAnimation(
+        beginOffset: const Offset(0, 1),
+        delay: const Duration(milliseconds: 700),
+        child: _buildBottomActions(),
+      ),
     );
   }
 
   Widget _buildImageSection() {
-    return Container(
-      width: double.infinity,
-      height: 300,
-      child: CachedNetworkImage(
-        imageUrl: widget.report.imageURL,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
-          color: AppTheme.lightGreen.withOpacity(0.3),
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-        errorWidget: (context, url, error) => Container(
-          color: AppTheme.lightGreen.withOpacity(0.3),
-          child: const Center(child: Icon(Icons.error, size: 50)),
+    return Hero(
+      tag: 'report_image_${widget.report.id}',
+      child: Container(
+        width: double.infinity,
+        height: 300,
+        child: Stack(
+          children: [
+            CachedNetworkImage(
+              imageUrl: widget.report.imageURL,
+              width: double.infinity,
+              height: 300,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: AppTheme.lightGreen.withOpacity(0.3),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: AppTheme.lightGreen.withOpacity(0.3),
+                child: const Center(child: Icon(Icons.error, size: 50)),
+              ),
+            ),
+            // Gradient overlay for better text visibility
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 100,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -86,112 +226,141 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           children: [
             Row(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Helpers.getSeverityColor(
-                      widget.report.severity,
-                    ).withOpacity(0.1),
-                  ),
-                  child: Icon(
-                    _getTrashTypeIcon(widget.report.trashType),
-                    color: Helpers.getSeverityColor(widget.report.severity),
-                    size: 24,
+                ScaleInAnimation(
+                  duration: AnimationConstants.extraSlowDuration,
+                  curve: AnimationConstants.bounceCurve,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Helpers.getSeverityColor(
+                        widget.report.severity,
+                      ).withOpacity(0.1),
+                    ),
+                    child: Icon(
+                      _getTrashTypeIcon(widget.report.trashType),
+                      color: Helpers.getSeverityColor(widget.report.severity),
+                      size: 24,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        Helpers.getTrashTypeDisplayName(
-                          widget.report.trashType,
+                  child: SlideInAnimation(
+                    beginOffset: const Offset(0.3, 0),
+                    delay: const Duration(milliseconds: 200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          Helpers.getTrashTypeDisplayName(
+                            widget.report.trashType,
+                          ),
+                          style: AppTheme.headlineMedium,
                         ),
-                        style: AppTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(
-                                widget.report.status,
-                              ).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              _getStatusDisplayName(widget.report.status),
-                              style: AppTheme.bodyMedium.copyWith(
-                                color: _getStatusColor(widget.report.status),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(
+                                  widget.report.status,
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _getStatusDisplayName(widget.report.status),
+                                style: AppTheme.bodyMedium.copyWith(
+                                  color: _getStatusColor(widget.report.status),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Helpers.getSeverityColor(
-                                widget.report.severity,
-                              ).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${widget.report.severity.toUpperCase()} SEVERITY',
-                              style: AppTheme.bodyMedium.copyWith(
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
                                 color: Helpers.getSeverityColor(
                                   widget.report.severity,
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${widget.report.severity.toUpperCase()} SEVERITY',
+                                style: AppTheme.bodyMedium.copyWith(
+                                  color: Helpers.getSeverityColor(
+                                    widget.report.severity,
+                                  ),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
                                 ),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Effort Estimate
-            _buildDetailRow(
-              Icons.timer_outlined,
-              'Estimated Effort',
-              widget.report.estimatedEffort,
-            ),
-
-            // Report Time
-            _buildDetailRow(
-              Icons.access_time,
-              'Reported',
-              Helpers.formatDateTime(widget.report.timestamp),
-            ),
-
-            // AI Confidence
-            if (widget.report.visionVerified)
-              _buildDetailRow(
-                Icons.psychology,
-                'AI Confidence',
-                '${(widget.report.visionConfidence * 100).toStringAsFixed(1)}%',
+            // Detail rows with staggered animation
+            StaggeredListAnimation(
+              itemDelay: const Duration(
+                milliseconds: AnimationConstants.staggerDelayMs,
               ),
+              beginOffset: const Offset(0.2, 0),
+              children: [
+                _buildDetailRow(
+                  Icons.timer_outlined,
+                  'Estimated Effort',
+                  widget.report.estimatedEffort,
+                ),
+                _buildDetailRow(
+                  Icons.access_time,
+                  'Reported',
+                  Helpers.formatDateTime(widget.report.timestamp),
+                ),
+                if (_currentPosition != null)
+                  _buildDetailRow(
+                    Icons.location_on,
+                    'Distance',
+                    Helpers.formatDistance(_getDistanceToReport()),
+                  ),
+                if (widget.report.visionVerified)
+                  _buildDetailRow(
+                    Icons.psychology,
+                    'AI Confidence',
+                    '${(widget.report.visionConfidence * 100).toStringAsFixed(1)}%',
+                  ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  double _getDistanceToReport() {
+    if (_currentPosition == null) return 0;
+    return Geolocator.distanceBetween(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+          widget.report.location.latitude,
+          widget.report.location.longitude,
+        ) /
+        1000;
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
@@ -222,7 +391,9 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.location_on, color: AppTheme.primaryGreen),
+                PulseAnimation(
+                  child: Icon(Icons.location_on, color: AppTheme.primaryGreen),
+                ),
                 const SizedBox(width: 8),
                 Text('Location', style: AppTheme.headlineMedium),
               ],
@@ -235,6 +406,25 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               style: AppTheme.bodyMedium.copyWith(
                 color: AppTheme.textSecondary,
                 fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Directions Button with animation
+            ScaleInAnimation(
+              delay: const Duration(milliseconds: 200),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _openGoogleMapsRoute,
+                  icon: const Icon(Icons.directions, size: 18),
+                  label: const Text('Get Directions'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: AppTheme.primaryGreen),
+                    foregroundColor: AppTheme.primaryGreen,
+                  ),
+                ),
               ),
             ),
           ],
@@ -253,60 +443,88 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.psychology, color: AppTheme.infoBlue),
+                PulseAnimation(
+                  duration: const Duration(seconds: 3),
+                  child: Icon(Icons.psychology, color: AppTheme.infoBlue),
+                ),
                 const SizedBox(width: 8),
                 Text('AI Analysis', style: AppTheme.headlineMedium),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'VERIFIED',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.primaryGreen,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'VERIFIED',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              'Confidence: ${(widget.report.visionConfidence * 100).toStringAsFixed(1)}%',
-              style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.primaryGreen,
-                fontWeight: FontWeight.w600,
+            SlideInAnimation(
+              beginOffset: const Offset(0, 0.1),
+              delay: const Duration(milliseconds: 100),
+              child: Text(
+                'Confidence: ${(widget.report.visionConfidence * 100).toStringAsFixed(1)}%',
+                style: AppTheme.bodyLarge.copyWith(
+                  color: AppTheme.primaryGreen,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(height: 8),
-            Text('Detected Labels:', style: AppTheme.labelMedium),
+            SlideInAnimation(
+              beginOffset: const Offset(0, 0.1),
+              delay: const Duration(milliseconds: 200),
+              child: Text('Detected Labels:', style: AppTheme.labelMedium),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: widget.report.visionLabels.take(6).map((label) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.lightGreen.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    label,
-                    style: AppTheme.bodyMedium.copyWith(fontSize: 12),
-                  ),
-                );
-              }).toList(),
+              children: widget.report.visionLabels
+                  .take(6)
+                  .toList()
+                  .asMap()
+                  .entries
+                  .map((entry) {
+                    final index = entry.key;
+                    final label = entry.value;
+                    return ScaleInAnimation(
+                      delay: Duration(
+                        milliseconds:
+                            300 + (index * AnimationConstants.staggerDelayMs),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightGreen.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          label,
+                          style: AppTheme.bodyMedium.copyWith(fontSize: 12),
+                        ),
+                      ),
+                    );
+                  })
+                  .toList(),
             ),
           ],
         ),
@@ -324,7 +542,13 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber, color: AppTheme.warningOrange),
+                PulseAnimation(
+                  duration: const Duration(seconds: 2),
+                  child: Icon(
+                    Icons.warning_amber,
+                    color: AppTheme.warningOrange,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Safety Warnings',
@@ -335,19 +559,29 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            ...widget.report.safetyWarnings.map((warning) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.circle, size: 6, color: AppTheme.warningOrange),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(warning, style: AppTheme.bodyMedium)),
-                  ],
-                ),
-              );
-            }),
+            StaggeredListAnimation(
+              itemDelay: const Duration(milliseconds: 150),
+              beginOffset: const Offset(-0.2, 0),
+              children: widget.report.safetyWarnings.map((warning) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        size: 6,
+                        color: AppTheme.warningOrange,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(warning, style: AppTheme.bodyMedium),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
           ],
         ),
       ),
@@ -367,27 +601,43 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
 
             if (widget.report.votes.upvotes > 0 ||
                 widget.report.votes.downvotes > 0) ...[
-              Row(
-                children: [
-                  Icon(Icons.thumb_up, size: 16, color: AppTheme.primaryGreen),
-                  const SizedBox(width: 4),
-                  Text('${widget.report.votes.upvotes}'),
-                  const SizedBox(width: 16),
-                  Icon(Icons.thumb_down, size: 16, color: AppTheme.dangerRed),
-                  const SizedBox(width: 4),
-                  Text('${widget.report.votes.downvotes}'),
-                ],
+              SlideInAnimation(
+                beginOffset: const Offset(0, 0.1),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.thumb_up,
+                      size: 16,
+                      color: AppTheme.primaryGreen,
+                    ),
+                    const SizedBox(width: 4),
+                    Text('${widget.report.votes.upvotes}'),
+                    const SizedBox(width: 16),
+                    Icon(Icons.thumb_down, size: 16, color: AppTheme.dangerRed),
+                    const SizedBox(width: 4),
+                    Text('${widget.report.votes.downvotes}'),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
             ],
 
-            Row(
+            StaggeredListAnimation(
+              direction: Axis.horizontal,
+              itemDelay: const Duration(
+                milliseconds: AnimationConstants.staggerDelayMs,
+              ),
+              beginOffset: const Offset(0, 0.1),
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _voteOnReport(true),
                     icon: const Icon(Icons.thumb_up, size: 16),
                     label: const Text('Helpful'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppTheme.primaryGreen),
+                      foregroundColor: AppTheme.primaryGreen,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -396,6 +646,10 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                     onPressed: () => _voteOnReport(false),
                     icon: const Icon(Icons.thumb_down, size: 16),
                     label: const Text('Not Helpful'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppTheme.dangerRed),
+                      foregroundColor: AppTheme.dangerRed,
+                    ),
                   ),
                 ),
               ],
@@ -413,8 +667,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
         widget.report.acceptedBy == null &&
         widget.report.reporterId != authProvider.user?.uid;
 
-    if (!canAcceptChallenge) return const SizedBox.shrink();
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -428,17 +680,46 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
         ],
       ),
       child: SafeArea(
-        child: CustomButton(
-          text: 'Accept Cleanup Challenge',
-          icon: Icons.cleaning_services,
-          isLoading: _isAccepting,
-          onPressed: _acceptChallenge,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (canAcceptChallenge)
+              ScaleInAnimation(
+                child: CustomButton(
+                  text: 'Accept Cleanup Challenge',
+                  icon: Icons.cleaning_services,
+                  isLoading: _isAccepting,
+                  onPressed: _acceptChallenge,
+                ),
+              ),
+
+            if (canAcceptChallenge) const SizedBox(height: 12),
+
+            // Always show directions button
+            ScaleInAnimation(
+              delay: canAcceptChallenge
+                  ? const Duration(milliseconds: 100)
+                  : Duration.zero,
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _openGoogleMapsRoute,
+                  icon: const Icon(Icons.directions),
+                  label: const Text('Get Directions in Maps'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: AppTheme.primaryGreen, width: 2),
+                    foregroundColor: AppTheme.primaryGreen,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // In your ReportDetailScreen, replace the _acceptChallenge method:
   Future<void> _acceptChallenge() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -460,8 +741,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Challenge accepted! Good luck with the cleanup.'),
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Challenge accepted! Good luck with the cleanup.'),
+              ],
+            ),
             backgroundColor: AppTheme.primaryGreen,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context);
@@ -471,8 +759,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to accept challenge: $e'),
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Failed to accept challenge: $e'),
+              ],
+            ),
             backgroundColor: AppTheme.dangerRed,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -500,8 +795,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Thank you for your feedback!'),
+            content: Row(
+              children: [
+                Icon(Icons.thumb_up, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Thank you for your feedback!'),
+              ],
+            ),
             backgroundColor: AppTheme.primaryGreen,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -509,8 +811,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit vote: $e'),
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Failed to submit vote: $e'),
+              ],
+            ),
             backgroundColor: AppTheme.dangerRed,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
