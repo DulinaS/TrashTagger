@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
-import { calculateDistance, findNearbyUsers } from './utils';
+import { findNearbyUsers } from './utils';
 
 // ================================
 // NOTIFICATION TYPES & INTERFACES
@@ -374,7 +374,6 @@ export const sendChallengeReminders = functions.pubsub
     try {
       const now = new Date();
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
       // Find challenges accepted but not completed
       const pendingChallenges = await admin
