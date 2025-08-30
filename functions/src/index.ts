@@ -1,8 +1,11 @@
-// functions/src/index.ts - Updated with Notification Integration
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { NotificationService, NotificationType } from './notification_service';
+import {
+  NotificationService,
+  NotificationType,
+  notifyNearbyUsersFunction,
+} from './notification_service';
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -129,8 +132,8 @@ export const analyzeTrashImage = functions.firestore
       // NOTIFICATION: If verified, notify nearby users
       if (status === 'verified') {
         try {
-          const callable = admin.functions().httpsCallable('notifyNearbyUsers');
-          await callable({
+          // Direct call to notification function instead of using callable
+          await notifyNearbyUsersFunction({
             reportLocation: reportData.location,
             reportId: reportId,
             reportData: {

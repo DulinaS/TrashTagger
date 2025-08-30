@@ -148,6 +148,10 @@ export class NotificationService {
     payload: NotificationPayload,
     tokens: string[]
   ) {
+    // Fix priority type issue
+    const androidPriority: 'default' | 'high' | 'low' | 'min' | 'max' =
+      payload.priority === 'high' ? 'high' : 'default';
+
     return {
       notification: {
         title: payload.title,
@@ -159,7 +163,7 @@ export class NotificationService {
         notification: {
           sound: payload.sound || 'default',
           clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-          priority: payload.priority === 'high' ? 'high' : 'normal',
+          priority: androidPriority,
           channelId: this.getChannelId(payload.data.type),
         },
         data: this.sanitizeData(payload.data),
@@ -259,51 +263,57 @@ export class NotificationService {
 // CHALLENGE-RELATED NOTIFICATIONS
 // ================================
 
+// Helper function for direct calls from other functions
+export async function notifyNearbyUsersFunction(data: {
+  reportLocation: any;
+  reportId: string;
+  reportData: any;
+}): Promise<{ success: boolean; notified: number }> {
+  const { reportLocation, reportId, reportData } = data;
+
+  try {
+    const nearbyUsers = await findNearbyUsers(
+      {
+        latitude: reportLocation.latitude,
+        longitude: reportLocation.longitude,
+      },
+      10, // 10km radius
+      50 // max 50 users
+    );
+
+    if (nearbyUsers.length === 0) return { success: true, notified: 0 };
+
+    const userIds = nearbyUsers
+      .filter((user) => user.userId !== reportData.reporterId) // Don't notify reporter
+      .map((user) => user.userId);
+
+    await NotificationService.sendToUsers(userIds, {
+      title: 'New Cleanup Challenge Available!',
+      body: `${reportData.trashType} cleanup needed nearby - ${reportData.address}`,
+      imageUrl: reportData.imageURL,
+      data: {
+        type: NotificationType.NEW_CHALLENGE,
+        reportId: reportId,
+        action: 'open_challenge_details',
+        trashType: reportData.trashType,
+        severity: reportData.severity,
+      },
+      priority: 'high',
+    });
+
+    console.log(
+      `Notified ${userIds.length} users about new challenge ${reportId}`
+    );
+    return { success: true, notified: userIds.length };
+  } catch (error) {
+    console.error('Error notifying nearby users:', error);
+    return { success: false, notified: 0 };
+  }
+}
+
 export const notifyNearbyUsers = functions.https.onCall(
   async (data, context) => {
-    const { reportLocation, reportId, reportData } = data;
-
-    try {
-      const nearbyUsers = await findNearbyUsers(
-        {
-          latitude: reportLocation.latitude,
-          longitude: reportLocation.longitude,
-        },
-        10, // 10km radius
-        50 // max 50 users
-      );
-
-      if (nearbyUsers.length === 0) return { success: true, notified: 0 };
-
-      const userIds = nearbyUsers
-        .filter((user) => user.userId !== reportData.reporterId) // Don't notify reporter
-        .map((user) => user.userId);
-
-      await NotificationService.sendToUsers(userIds, {
-        title: 'New Cleanup Challenge Available!',
-        body: `${reportData.trashType} cleanup needed nearby - ${reportData.address}`,
-        imageUrl: reportData.imageURL,
-        data: {
-          type: NotificationType.NEW_CHALLENGE,
-          reportId: reportId,
-          action: 'open_challenge_details',
-          trashType: reportData.trashType,
-          severity: reportData.severity,
-        },
-        priority: 'high',
-      });
-
-      console.log(
-        `Notified ${userIds.length} users about new challenge ${reportId}`
-      );
-      return { success: true, notified: userIds.length };
-    } catch (error) {
-      console.error('Error notifying nearby users:', error);
-      throw new functions.https.HttpsError(
-        'internal',
-        'Failed to send notifications'
-      );
-    }
+    return await notifyNearbyUsersFunction(data);
   }
 );
 
