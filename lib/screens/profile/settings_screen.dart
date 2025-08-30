@@ -5,6 +5,7 @@ import 'package:trash_tagger/models/user_model.dart'
     show UserModel, UserSettings;
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../services/notification_service.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/common/custom_button.dart';
 
@@ -18,6 +19,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _safetyWarningsEnabled = true;
   double _searchRadius = 5.0;
   String _selectedLanguage = 'English';
+  bool _challengeNotifications = true;
+  bool _achievementNotifications = true;
+  bool _leaderboardNotifications = true;
+  bool _reminderNotifications = true;
 
   @override
   void initState() {
@@ -69,60 +74,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // About Section
             _buildAboutSection(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationSettings() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Notifications', style: AppTheme.headlineMedium),
-            const SizedBox(height: 16),
-
-            SwitchListTile(
-              title: const Text('Push Notifications'),
-              subtitle: const Text(
-                'Get notified about nearby cleanup opportunities',
-              ),
-              value: _notificationsEnabled,
-              onChanged: (value) {
-                setState(() => _notificationsEnabled = value);
-                _updateSettings();
-              },
-              activeColor: AppTheme.primaryGreen,
-            ),
-
-            SwitchListTile(
-              title: const Text('Challenge Updates'),
-              subtitle: const Text(
-                'Get updates when your reports are completed',
-              ),
-              value: _notificationsEnabled,
-              onChanged: _notificationsEnabled
-                  ? (value) {
-                      // Handle challenge notifications
-                    }
-                  : null,
-              activeColor: AppTheme.primaryGreen,
-            ),
-
-            SwitchListTile(
-              title: const Text('Badge Notifications'),
-              subtitle: const Text('Get notified when you earn new badges'),
-              value: _notificationsEnabled,
-              onChanged: _notificationsEnabled
-                  ? (value) {
-                      // Handle badge notifications
-                    }
-                  : null,
-              activeColor: AppTheme.primaryGreen,
-            ),
           ],
         ),
       ),
@@ -621,6 +572,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotificationSettings() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Notifications', style: AppTheme.headlineMedium),
+            const SizedBox(height: 16),
+
+            SwitchListTile(
+              title: const Text('Push Notifications'),
+              subtitle: const Text('Enable all notifications'),
+              value: _notificationsEnabled,
+              onChanged: (value) {
+                setState(() => _notificationsEnabled = value);
+                _updateSettings();
+              },
+              activeColor: AppTheme.primaryGreen,
+            ),
+
+            // Challenge Notifications
+            SwitchListTile(
+              title: const Text('Challenge Notifications'),
+              subtitle: const Text(
+                'Get notified about new cleanup opportunities',
+              ),
+              value: _challengeNotifications && _notificationsEnabled,
+              onChanged: _notificationsEnabled
+                  ? (value) {
+                      setState(() => _challengeNotifications = value);
+                      _updateNotificationPreferences();
+                    }
+                  : null,
+              activeColor: AppTheme.primaryGreen,
+            ),
+
+            // Achievement Notifications
+            SwitchListTile(
+              title: const Text('Achievement Notifications'),
+              subtitle: const Text('Get notified about badges and level ups'),
+              value: _achievementNotifications && _notificationsEnabled,
+              onChanged: _notificationsEnabled
+                  ? (value) {
+                      setState(() => _achievementNotifications = value);
+                      _updateNotificationPreferences();
+                    }
+                  : null,
+              activeColor: AppTheme.primaryGreen,
+            ),
+
+            // Leaderboard Notifications
+            SwitchListTile(
+              title: const Text('Leaderboard Updates'),
+              subtitle: const Text('Get notified about ranking changes'),
+              value: _leaderboardNotifications && _notificationsEnabled,
+              onChanged: _notificationsEnabled
+                  ? (value) {
+                      setState(() => _leaderboardNotifications = value);
+                      _updateNotificationPreferences();
+                    }
+                  : null,
+              activeColor: AppTheme.primaryGreen,
+            ),
+
+            // Reminder Notifications
+            SwitchListTile(
+              title: const Text('Reminder Notifications'),
+              subtitle: const Text('Get reminded about pending challenges'),
+              value: _reminderNotifications && _notificationsEnabled,
+              onChanged: _notificationsEnabled
+                  ? (value) {
+                      setState(() => _reminderNotifications = value);
+                      _updateNotificationPreferences();
+                    }
+                  : null,
+              activeColor: AppTheme.primaryGreen,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _updateNotificationPreferences() {
+    NotificationService.updateNotificationPreferences(
+      challengeNotifications: _challengeNotifications,
+      achievementNotifications: _achievementNotifications,
+      leaderboardNotifications: _leaderboardNotifications,
     );
   }
 }

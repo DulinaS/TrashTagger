@@ -1,11 +1,11 @@
-// lib/services/notification_service.dart - Flutter Implementation
+// lib/services/notification_service.dart - Complete Flutter Implementation
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-//import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../screens/challenges/challenges_screen.dart';
@@ -14,7 +14,9 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/profile/badges_screen.dart';
 import '../screens/profile/leaderboard_screen.dart';
 import '../screens/map/report_detail_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
 import '../models/trash_report_model.dart';
+import '../models/notification_model.dart';
 
 class NotificationService {
   static final FirebaseMessaging _firebaseMessaging =
@@ -54,9 +56,9 @@ class NotificationService {
       }
 
       _initialized = true;
-      debugPrint('🔔 Notification service initialized successfully');
+      debugPrint('Notification service initialized successfully');
     } catch (e) {
-      debugPrint('❌ Failed to initialize notification service: $e');
+      debugPrint('Failed to initialize notification service: $e');
     }
   }
 
@@ -93,11 +95,11 @@ class NotificationService {
     );
 
     debugPrint(
-      '🔐 Notification permission status: ${settings.authorizationStatus}',
+      'Notification permission status: ${settings.authorizationStatus}',
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      debugPrint('⚠️ User denied notification permissions');
+      debugPrint('User denied notification permissions');
       _showPermissionDialog();
     }
   }
@@ -107,7 +109,7 @@ class NotificationService {
       String? token = await _firebaseMessaging.getToken();
       if (token != null) {
         await _sendTokenToBackend(token);
-        debugPrint('📲 FCM Token updated: ${token.substring(0, 20)}...');
+        debugPrint('FCM Token updated: ${token.substring(0, 20)}...');
       }
 
       // Listen for token refresh
@@ -115,7 +117,7 @@ class NotificationService {
         _sendTokenToBackend(token);
       });
     } catch (e) {
-      debugPrint('❌ Failed to update FCM token: $e');
+      debugPrint('Failed to update FCM token: $e');
     }
   }
 
@@ -127,7 +129,7 @@ class NotificationService {
         'platform': Platform.operatingSystem,
       });
     } catch (e) {
-      debugPrint('❌ Failed to send token to backend: $e');
+      debugPrint('Failed to send token to backend: $e');
     }
   }
 
@@ -147,14 +149,14 @@ class NotificationService {
   }
 
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    debugPrint('📨 Received foreground message: ${message.messageId}');
+    debugPrint('Received foreground message: ${message.messageId}');
 
     // Show local notification for foreground messages
     await _showLocalNotification(message);
   }
 
   static void _handleNotificationTap(RemoteMessage message) {
-    debugPrint('🔔 Notification tapped: ${message.data}');
+    debugPrint('Notification tapped: ${message.data}');
     _navigateBasedOnNotification(message.data);
   }
 
@@ -162,8 +164,11 @@ class NotificationService {
     RemoteMessage? initialMessage = await _firebaseMessaging
         .getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('📱 App opened from terminated state via notification');
-      _navigateBasedOnNotification(initialMessage.data);
+      debugPrint('App opened from terminated state via notification');
+      // Delay navigation to ensure app is fully loaded
+      Future.delayed(Duration(seconds: 2), () {
+        _navigateBasedOnNotification(initialMessage.data);
+      });
     }
   }
 
@@ -175,23 +180,31 @@ class NotificationService {
     final notification = message.notification;
     if (notification == null) return;
 
-    const androidDetails = AndroidNotificationDetails(
-      'general',
-      'General Notifications',
-      channelDescription: 'General app notifications',
-      importance: Importance.high,
+    // Get notification type for proper channel
+    final notificationType = message.data['type'] ?? 'general';
+    String channelId = _getChannelId(notificationType);
+
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      _getChannelName(channelId),
+      channelDescription: _getChannelDescription(channelId),
+      importance: _getImportance(notificationType),
       priority: Priority.high,
       showWhen: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
+      color: const Color(0xFF4CAF50),
+      playSound: true,
+      sound: _getNotificationSound(notificationType),
     );
 
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      sound: 'default',
     );
 
-    const platformDetails = NotificationDetails(
+    final platformDetails = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -207,8 +220,8 @@ class NotificationService {
 
   static void _onNotificationTapped(NotificationResponse response) {
     if (response.payload != null) {
-      // Parse payload and navigate
       debugPrint('Local notification tapped: ${response.payload}');
+      // You could parse the payload and navigate accordingly
     }
   }
 
@@ -217,6 +230,13 @@ class NotificationService {
   // ================================
 
   static Future<void> _createNotificationChannels() async {
+    final plugin = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (plugin == null) return;
+
     const channels = [
       AndroidNotificationChannel(
         'challenges',
@@ -247,11 +267,7 @@ class NotificationService {
     ];
 
     for (final channel in channels) {
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(channel);
+      await plugin.createNotificationChannel(channel);
     }
   }
 
@@ -263,7 +279,11 @@ class NotificationService {
     if (_context == null) return;
 
     final action = data['action'] as String?;
-    //final type = data['type'] as String?;
+    final type = data['type'] as String?;
+
+    debugPrint(
+      'Navigating based on notification - Action: $action, Type: $type',
+    );
 
     switch (action) {
       case 'open_challenge_details':
@@ -273,14 +293,13 @@ class NotificationService {
         _navigateToChallenges();
         break;
       case 'open_challenge_proof':
+      case 'resubmit_proof':
         _navigateToProofSubmission(data['reportId']);
         break;
       case 'view_report_status':
       case 'view_completed_report':
+      case 'view_challenge_result':
         _navigateToReport(data['reportId']);
-        break;
-      case 'resubmit_proof':
-        _navigateToProofSubmission(data['reportId']);
         break;
       case 'view_badges':
         _navigateToBadges();
@@ -291,8 +310,8 @@ class NotificationService {
       case 'view_leaderboard':
         _navigateToLeaderboard();
         break;
-      case 'view_challenge_result':
-        _navigateToChallenge(data['reportId']);
+      case 'open_notifications':
+        _navigateToNotifications();
         break;
       default:
         _navigateToHome();
@@ -302,18 +321,25 @@ class NotificationService {
   static void _navigateToChallenge(String? reportId) {
     if (reportId == null || _context == null) return;
 
-    // Navigate to specific challenge/report details
     Navigator.of(_context!).push(
       MaterialPageRoute(
         builder: (context) => FutureBuilder<TrashReportModel?>(
           future: _getReportById(reportId),
           builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Scaffold(
+                appBar: AppBar(title: Text('Loading...')),
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
             if (snapshot.hasData && snapshot.data != null) {
               return ReportDetailScreen(report: snapshot.data!);
             }
+
             return Scaffold(
-              appBar: AppBar(title: Text('Loading...')),
-              body: Center(child: CircularProgressIndicator()),
+              appBar: AppBar(title: Text('Error')),
+              body: Center(child: Text('Could not load challenge details')),
             );
           },
         ),
@@ -331,9 +357,8 @@ class NotificationService {
   static void _navigateToProofSubmission(String? reportId) {
     if (reportId == null || _context == null) return;
 
-    // Navigate to proof submission screen
     _getReportById(reportId).then((report) {
-      if (report != null) {
+      if (report != null && _context != null) {
         Navigator.of(_context!).push(
           MaterialPageRoute(
             builder: (context) => CleanupProofScreen(challenge: report),
@@ -344,7 +369,6 @@ class NotificationService {
   }
 
   static void _navigateToReport(String? reportId) {
-    if (reportId == null) return;
     _navigateToChallenge(reportId); // Same as challenge navigation
   }
 
@@ -367,6 +391,13 @@ class NotificationService {
     Navigator.of(
       _context!,
     ).push(MaterialPageRoute(builder: (context) => LeaderboardScreen()));
+  }
+
+  static void _navigateToNotifications() {
+    if (_context == null) return;
+    Navigator.of(
+      _context!,
+    ).push(MaterialPageRoute(builder: (context) => NotificationsScreen()));
   }
 
   static void _navigateToHome() {
@@ -396,6 +427,76 @@ class NotificationService {
       debugPrint('Error fetching report: $e');
     }
     return null;
+  }
+
+  static String _getChannelId(String notificationType) {
+    switch (notificationType) {
+      case 'new_challenge':
+      case 'challenge_accepted':
+      case 'challenge_reminder':
+        return 'challenges';
+      case 'badge_earned':
+      case 'level_up':
+      case 'points_awarded':
+        return 'achievements';
+      case 'leaderboard_update':
+        return 'leaderboard';
+      default:
+        return 'general';
+    }
+  }
+
+  static String _getChannelName(String channelId) {
+    switch (channelId) {
+      case 'challenges':
+        return 'Challenge Notifications';
+      case 'achievements':
+        return 'Achievement Notifications';
+      case 'leaderboard':
+        return 'Leaderboard Notifications';
+      default:
+        return 'General Notifications';
+    }
+  }
+
+  static String _getChannelDescription(String channelId) {
+    switch (channelId) {
+      case 'challenges':
+        return 'Notifications about cleanup challenges and opportunities';
+      case 'achievements':
+        return 'Notifications about badges, level ups, and achievements';
+      case 'leaderboard':
+        return 'Notifications about leaderboard updates and rankings';
+      default:
+        return 'General app notifications';
+    }
+  }
+
+  static Importance _getImportance(String notificationType) {
+    switch (notificationType) {
+      case 'new_challenge':
+      case 'badge_earned':
+      case 'level_up':
+      case 'verification_result':
+        return Importance.high;
+      case 'challenge_reminder':
+      case 'leaderboard_update':
+        return Importance.defaultImportance;
+      default:
+        return Importance.low;
+    }
+  }
+
+  static RawResourceAndroidNotificationSound? _getNotificationSound(
+    String notificationType,
+  ) {
+    switch (notificationType) {
+      case 'badge_earned':
+      case 'level_up':
+        return RawResourceAndroidNotificationSound('achievement');
+      default:
+        return RawResourceAndroidNotificationSound('notification');
+    }
   }
 
   static void _showPermissionDialog() {
@@ -436,16 +537,59 @@ class NotificationService {
     required bool leaderboardNotifications,
   }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(Provider.of<AuthProvider>(_context!, listen: false).user?.uid)
-          .update({
-            'settings.challengeNotifications': challengeNotifications,
-            'settings.achievementNotifications': achievementNotifications,
-            'settings.leaderboardNotifications': leaderboardNotifications,
-          });
+      if (_context == null) return;
+
+      final userId = Provider.of<AuthProvider>(
+        _context!,
+        listen: false,
+      ).user?.uid;
+      if (userId == null) return;
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'settings.challengeNotifications': challengeNotifications,
+        'settings.achievementNotifications': achievementNotifications,
+        'settings.leaderboardNotifications': leaderboardNotifications,
+      });
     } catch (e) {
       debugPrint('Error updating notification preferences: $e');
+    }
+  }
+
+  // ================================
+  // TEST NOTIFICATION (FOR DEBUGGING)
+  // ================================
+
+  static Future<void> sendTestNotification() async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'general',
+        'General Notifications',
+        channelDescription: 'General app notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        icon: '@drawable/ic_notification',
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'Test Notification',
+        'This is a test notification from TrashTagger',
+        platformDetails,
+      );
+    } catch (e) {
+      debugPrint('Error sending test notification: $e');
     }
   }
 
@@ -462,6 +606,76 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint('Error during notification cleanup: $e');
+    }
+  }
+
+  // ================================
+  // BADGE COUNT MANAGEMENT
+  // ================================
+
+  static Future<void> updateBadgeCount(int count) async {
+    try {
+      if (Platform.isIOS) {
+        await _firebaseMessaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        // iOS badge count is handled by Firebase automatically
+      }
+    } catch (e) {
+      debugPrint('Error updating badge count: $e');
+    }
+  }
+
+  static Future<void> clearBadgeCount() async {
+    await updateBadgeCount(0);
+  }
+
+  // ================================
+  // NOTIFICATION HISTORY
+  // ================================
+
+  static Stream<List<NotificationModel>> getNotificationHistory(String userId) {
+    return FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) =>
+                    NotificationModel.fromMap({'id': doc.id, ...doc.data()}),
+              )
+              .toList(),
+        );
+  }
+
+  static Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'read': true});
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
+  }
+
+  static Future<int> getUnreadCount(String userId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('read', isEqualTo: false)
+          .get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      debugPrint('Error getting unread count: $e');
+      return 0;
     }
   }
 }
