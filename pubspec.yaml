@@ -61,6 +61,8 @@ dependencies:
   google_polyline_algorithm: ^3.1.0
   maps_launcher: ^3.0.0+1
   url_launcher: ^6.3.2
+  flutter_local_notifications: ^19.4.1
+  cloud_functions: ^5.6.2
 
 dev_dependencies:
   flutter_test:
