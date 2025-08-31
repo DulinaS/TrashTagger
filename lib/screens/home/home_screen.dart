@@ -11,6 +11,7 @@ import '../../themes/app_theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../models/trash_report_model.dart';
+import '../test/notification_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -825,6 +826,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 () => _navigateToTab(4), // Navigate to profile tab
               ),
             ),
+          ],
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                'Test Notifications',
+                'Debug notification system',
+                Icons.bug_report,
+                AppTheme.warningOrange,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NotificationTestScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Expanded(child: Container()), // Empty space
           ],
         ),
       ],

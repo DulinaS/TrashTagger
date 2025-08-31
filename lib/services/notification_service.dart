@@ -194,7 +194,7 @@ class NotificationService {
       icon: '@drawable/ic_notification',
       color: const Color(0xFF4CAF50),
       playSound: true,
-      sound: _getNotificationSound(notificationType),
+      sound: RawResourceAndroidNotificationSound('default'),
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -487,18 +487,6 @@ class NotificationService {
     }
   }
 
-  static RawResourceAndroidNotificationSound? _getNotificationSound(
-    String notificationType,
-  ) {
-    switch (notificationType) {
-      case 'badge_earned':
-      case 'level_up':
-        return RawResourceAndroidNotificationSound('achievement');
-      default:
-        return RawResourceAndroidNotificationSound('notification');
-    }
-  }
-
   static void _showPermissionDialog() {
     if (_context == null) return;
 
@@ -559,7 +547,7 @@ class NotificationService {
   // TEST NOTIFICATION (FOR DEBUGGING)
   // ================================
 
-  static Future<void> sendTestNotification() async {
+  static Future<void> sendTestNotificationDebugging() async {
     try {
       const androidDetails = AndroidNotificationDetails(
         'general',
@@ -590,6 +578,139 @@ class NotificationService {
       );
     } catch (e) {
       debugPrint('Error sending test notification: $e');
+    }
+  }
+
+  // ================================
+  // TESTING METHODS
+  // ================================
+
+  static Future<void> sendTestNotification() async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'general',
+        'General Notifications',
+        channelDescription: 'Test notification',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        icon: '@drawable/ic_notification',
+        color: Color(0xFF4CAF50),
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'Test Notification 🧪',
+        'This is a test notification from TrashTagger',
+        platformDetails,
+      );
+    } catch (e) {
+      debugPrint('Error sending test notification: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> sendTestAchievementNotification() async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'achievements',
+        'Achievement Notifications',
+        channelDescription: 'Test achievement notification',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@drawable/ic_notification',
+        color: Color(0xFF4CAF50),
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'achievement.wav',
+      );
+
+      const platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'New Badge Earned! 🏆',
+        'You\'ve earned "Test Badge" - Keep up the great work!',
+        platformDetails,
+      );
+    } catch (e) {
+      debugPrint('Error sending achievement notification: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> sendTestChallengeNotification() async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'challenges',
+        'Challenge Notifications',
+        channelDescription: 'Test challenge notification',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@drawable/ic_notification',
+        color: Color(0xFF4CAF50),
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'New Cleanup Challenge Available!',
+        'Recyclable cleanup needed nearby - Test Location',
+        platformDetails,
+      );
+    } catch (e) {
+      debugPrint('Error sending challenge notification: $e');
+      rethrow;
+    }
+  }
+
+  // Test method to check notification status
+  static Future<Map<String, dynamic>> getNotificationStatus() async {
+    try {
+      final token = await _firebaseMessaging.getToken();
+      final settings = await _firebaseMessaging.getNotificationSettings();
+
+      return {
+        'hasToken': token != null,
+        'tokenPreview': token?.substring(0, 20) ?? 'No token',
+        'permissionStatus': settings.authorizationStatus.name,
+        'initialized': _initialized,
+      };
+    } catch (e) {
+      return {
+        'error': e.toString(),
+        'hasToken': false,
+        'permissionStatus': 'unknown',
+        'initialized': _initialized,
+      };
     }
   }
 
