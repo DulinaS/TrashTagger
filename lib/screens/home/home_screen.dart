@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:trash_tagger/main.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/notification_service.dart';
@@ -152,10 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToTab(int tabIndex) {
-    // This assumes you have a way to change tabs in your MainNavigationScreen
-    // You might need to implement this based on your navigation structure
-    Navigator.of(context).pop(); // Close any current screen
-    // Then navigate to the specific tab - implementation depends on your structure
+    mainNavKey.currentState?.onTabTapped(tabIndex);
   }
 
   @override

@@ -19,10 +19,10 @@ class MainNavigationScreen extends StatefulWidget {
     : super(key: key);
 
   @override
-  _MainNavigationScreenState createState() => _MainNavigationScreenState();
+  MainNavigationScreenState createState() => MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
   int _unreadNotificationCount = 0;
 
@@ -87,7 +87,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
-  void _onTabTapped(int index) {
+  void onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
     });
@@ -119,7 +119,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
-          onTap: _onTabTapped,
+          onTap: onTabTapped,
           backgroundColor: AppTheme.surfaceLight,
           selectedItemColor: AppTheme.primaryGreen,
           unselectedItemColor: AppTheme.textSecondary,

@@ -5,7 +5,7 @@ import 'package:trash_tagger/screens/home/home_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import 'login_screen.dart';
-import '../home/bottom_navigation.dart';
+import '../home/main_ navigation_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   @override
@@ -20,7 +20,7 @@ class AuthWrapper extends StatelessWidget {
               listen: false,
             ).loadCurrentUser(authProvider.user!.uid);
           });
-          return BottomNavigationScreen();
+          return MainNavigationScreen();
         } else {
           return LoginScreen();
         }

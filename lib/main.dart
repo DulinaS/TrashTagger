@@ -14,6 +14,9 @@ import 'services/notification_service.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'themes/app_theme.dart';
 
+final GlobalKey<MainNavigationScreenState> mainNavKey =
+    GlobalKey<MainNavigationScreenState>();
+
 // Global handler for background messages
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -153,7 +156,7 @@ class _TrashTaggerAppState extends State<TrashTaggerApp>
               return AuthWrapper();
             }
 
-            return MainNavigationScreen();
+            return MainNavigationScreen(key: mainNavKey);
           },
         ),
       ),
