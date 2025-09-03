@@ -1,5 +1,3 @@
-// lib/screens/map/report_detail_screen.dart - CORRECTED VERSION
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:maps_launcher/maps_launcher.dart';

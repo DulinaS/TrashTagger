@@ -1,18 +1,22 @@
-// functions/src/index.ts - Clean version
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
+import {
+  NotificationService,
+  NotificationType,
+  notifyNearbyUsersFunction,
+} from './notification_service';
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Initialize Google Cloud Vision with your service account
+// Initialize Google Cloud Vision
 const visionClient = new ImageAnnotatorClient({
   keyFilename: './trashtagger-service-account.json',
 });
 
 // ================================
-// AI IMAGE ANALYSIS FUNCTION
+// AI IMAGE ANALYSIS FUNCTION - ENHANCED
 // ================================
 
 export const analyzeTrashImage = functions.firestore
@@ -21,7 +25,7 @@ export const analyzeTrashImage = functions.firestore
     const reportData = snap.data();
     const reportId = context.params.reportId;
 
-    console.log(`🔍 Starting AI analysis for report: ${reportId}`);
+    console.log(`Starting AI analysis for report: ${reportId}`);
 
     try {
       const imageUrl = reportData.imageURL;
@@ -29,20 +33,20 @@ export const analyzeTrashImage = functions.firestore
         throw new Error('No image URL found in report');
       }
 
-      console.log(`📸 Analyzing image: ${imageUrl}`);
+      console.log(`Analyzing image: ${imageUrl}`);
 
-      // 🤖 GOOGLE CLOUD VISION ANALYSIS
+      // Google Cloud Vision Analysis
       const [result] = await visionClient.labelDetection(imageUrl);
       const labels = result.labelAnnotations || [];
 
       console.log(
-        `🏷️ Found ${labels.length} labels:`,
+        `Found ${labels.length} labels:`,
         labels
           .slice(0, 5)
           .map((l) => `${l.description} (${(l.score! * 100).toFixed(1)}%)`)
       );
 
-      // 🗑️ TRASH DETECTION
+      // Trash detection logic
       const trashKeywords = [
         'trash',
         'garbage',
@@ -75,17 +79,14 @@ export const analyzeTrashImage = functions.firestore
         (l) => l.description?.toLowerCase() || ''
       );
 
-      // Check for trash
       const hasTrash = detectedLabels.some((label) =>
         trashKeywords.some((keyword) => label.includes(keyword))
       );
 
-      // Check for hazardous materials
       const hasHazardous = detectedLabels.some((label) =>
         hazardousKeywords.some((keyword) => label.includes(keyword))
       );
 
-      // Calculate confidence
       const trashConfidence = labels
         .filter((label) =>
           trashKeywords.some((keyword) =>
@@ -94,7 +95,7 @@ export const analyzeTrashImage = functions.firestore
         )
         .reduce((max, label) => Math.max(max, label.score || 0), 0);
 
-      // 🎯 DETERMINE STATUS
+      // Determine status
       let status = 'rejected';
       if (hasTrash && trashConfidence > 0.6) {
         status = 'verified';
@@ -102,7 +103,7 @@ export const analyzeTrashImage = functions.firestore
         status = 'pending';
       }
 
-      // 🏷️ CLASSIFY TRASH TYPE
+      // Classify trash type
       let trashType = 'general';
       if (hasHazardous) {
         trashType = 'hazardous';
@@ -114,7 +115,7 @@ export const analyzeTrashImage = functions.firestore
 
       const severity = hasHazardous ? 'high' : 'low';
 
-      // 💾 UPDATE REPORT
+      // Update report
       await snap.ref.update({
         visionVerified: hasTrash,
         visionLabels: detectedLabels.slice(0, 10),
@@ -123,20 +124,40 @@ export const analyzeTrashImage = functions.firestore
         trashType: trashType,
         severity: severity,
         safetyWarnings: hasHazardous
-          ? ['⚠️ Hazardous materials - contact authorities']
+          ? ['Hazardous materials - contact authorities']
           : [],
         analyzedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
+      // NOTIFICATION: If verified, notify nearby users
+      if (status === 'verified') {
+        try {
+          // Direct call to notification function instead of using callable
+          await notifyNearbyUsersFunction({
+            reportLocation: reportData.location,
+            reportId: reportId,
+            reportData: {
+              ...reportData,
+              trashType,
+              severity,
+            },
+          });
+          console.log(`Notified nearby users about new challenge: ${reportId}`);
+        } catch (notifyError) {
+          console.error('Failed to notify nearby users:', notifyError);
+          // Don't fail the main function if notification fails
+        }
+      }
+
       console.log(
-        `✅ Analysis complete: ${status} (${(trashConfidence * 100).toFixed(
+        `Analysis complete: ${status} (${(trashConfidence * 100).toFixed(
           1
         )}% confidence)`
       );
 
       return { success: true, status, confidence: trashConfidence };
     } catch (error) {
-      console.error(`❌ Vision API error for ${reportId}:`, error);
+      console.error(`Vision API error for ${reportId}:`, error);
 
       await snap.ref.update({
         status: 'pending',
@@ -149,15 +170,19 @@ export const analyzeTrashImage = functions.firestore
   });
 
 // ================================
-// POINTS AND BADGES FUNCTION
+// ENHANCED POINTS AND BADGES FUNCTION
 // ================================
 
-/* export const awardPointsAndBadges = functions.firestore
+export const awardPointsAndBadges = functions.firestore
   .document('trashReports/{reportId}')
   .onUpdate(async (change, context) => {
     const beforeData = change.before.data();
     const afterData = change.after.data();
     const reportId = context.params.reportId;
+
+    console.log(
+      `Report ${reportId} status changed: ${beforeData.status} → ${afterData.status}`
+    );
 
     // Check if status changed to completed
     if (beforeData.status !== 'completed' && afterData.status === 'completed') {
@@ -169,112 +194,21 @@ export const analyzeTrashImage = functions.firestore
 
         if (!reporterId || !cleanerId) {
           console.error('Missing reporterId or cleanerId');
-          return;
-        }
-
-        // Calculate points based on severity
-        const reporterPoints = getReporterPoints(afterData.severity);
-        const cleanerPoints = getCleanerPoints(afterData.severity);
-
-        // Use transaction to ensure data consistency
-        await admin.firestore().runTransaction(async (transaction) => {
-          // Get user documents
-          const reporterRef = admin
-            .firestore()
-            .collection('users')
-            .doc(reporterId);
-          const cleanerRef = admin
-            .firestore()
-            .collection('users')
-            .doc(cleanerId);
-
-          const reporterDoc = await transaction.get(reporterRef);
-          const cleanerDoc = await transaction.get(cleanerRef);
-
-          if (reporterDoc.exists) {
-            const reporterData = reporterDoc.data() || {};
-            const newReporterPoints =
-              (reporterData.totalPoints || 0) + reporterPoints;
-
-            transaction.update(reporterRef, {
-              totalPoints: newReporterPoints,
-              level: calculateLevel(newReporterPoints),
-              'stats.monthlyPoints':
-                admin.firestore.FieldValue.increment(reporterPoints),
-              'stats.reportsSubmitted': admin.firestore.FieldValue.increment(1),
-            });
-
-            console.log(
-              `Awarded ${reporterPoints} points to reporter ${reporterId}`
-            );
-          }
-
-          if (cleanerDoc.exists) {
-            const cleanerData = cleanerDoc.data() || {};
-            const newCleanerPoints =
-              (cleanerData.totalPoints || 0) + cleanerPoints;
-
-            transaction.update(cleanerRef, {
-              totalPoints: newCleanerPoints,
-              level: calculateLevel(newCleanerPoints),
-              'stats.monthlyPoints':
-                admin.firestore.FieldValue.increment(cleanerPoints),
-              'stats.challengesCompleted':
-                admin.firestore.FieldValue.increment(1),
-            });
-
-            console.log(
-              `Awarded ${cleanerPoints} points to cleaner ${cleanerId}`
-            );
-          }
-        });
-
-        return { success: true };
-      } catch (error) {
-        console.error(`Error awarding points for report ${reportId}:`, error);
-        return { success: false, error: String(error) };
-      }
-    }
-
-    return null;
-  }); */
-export const awardPointsAndBadges = functions.firestore
-  .document('trashReports/{reportId}')
-  .onUpdate(async (change, context) => {
-    const beforeData = change.before.data();
-    const afterData = change.after.data();
-    const reportId = context.params.reportId;
-
-    console.log(
-      `🔄 Report ${reportId} status changed: ${beforeData.status} → ${afterData.status}`
-    );
-
-    // Check if status changed to completed
-    if (beforeData.status !== 'completed' && afterData.status === 'completed') {
-      console.log(`🏆 Awarding points for completed report: ${reportId}`);
-
-      try {
-        const reporterId = afterData.reporterId;
-        const cleanerId = afterData.acceptedBy;
-
-        if (!reporterId || !cleanerId) {
-          console.error('❌ Missing reporterId or cleanerId');
           return { success: false, error: 'Missing user IDs' };
         }
 
-        // Calculate points based on severity
+        // Calculate points
         const reporterPoints = getReporterPoints(afterData.severity || 'low');
         const cleanerPoints = getCleanerPoints(afterData.severity || 'low');
 
         console.log(
-          `💰 Points to award: Reporter(${reporterId}): ${reporterPoints}, Cleaner(${cleanerId}): ${cleanerPoints}`
+          `Points to award: Reporter(${reporterId}): ${reporterPoints}, Cleaner(${cleanerId}): ${cleanerPoints}`
         );
 
-        // Use transaction to ensure data consistency
+        // Use transaction for data consistency
         const result = await admin
           .firestore()
           .runTransaction(async (transaction) => {
-            // Get user documents
             const reporterRef = admin
               .firestore()
               .collection('users')
@@ -287,11 +221,17 @@ export const awardPointsAndBadges = functions.firestore
             const reporterDoc = await transaction.get(reporterRef);
             const cleanerDoc = await transaction.get(cleanerRef);
 
+            let reporterLeveledUp = false;
+            let cleanerLeveledUp = false;
+            let cleanerNewBadges: string[] = [];
+
             if (reporterDoc.exists) {
               const reporterData = reporterDoc.data() || {};
               const newReporterPoints =
                 (reporterData.totalPoints || 0) + reporterPoints;
+              const oldLevel = reporterData.level || 1;
               const newLevel = calculateLevel(newReporterPoints);
+              reporterLeveledUp = newLevel > oldLevel;
 
               transaction.update(reporterRef, {
                 totalPoints: newReporterPoints,
@@ -304,7 +244,7 @@ export const awardPointsAndBadges = functions.firestore
               });
 
               console.log(
-                `✅ Updated reporter ${reporterId}: ${newReporterPoints} points, level ${newLevel}`
+                `Updated reporter ${reporterId}: ${newReporterPoints} points, level ${newLevel}`
               );
             }
 
@@ -312,19 +252,20 @@ export const awardPointsAndBadges = functions.firestore
               const cleanerData = cleanerDoc.data() || {};
               const newCleanerPoints =
                 (cleanerData.totalPoints || 0) + cleanerPoints;
+              const oldLevel = cleanerData.level || 1;
               const newLevel = calculateLevel(newCleanerPoints);
+              cleanerLeveledUp = newLevel > oldLevel;
 
               // Check for badges
               const currentChallenges =
                 (cleanerData.stats?.challengesCompleted || 0) + 1;
-              const newBadges = [];
 
               // First cleanup badge
               if (
                 currentChallenges === 1 &&
                 !(cleanerData.badges || []).includes('first_cleanup')
               ) {
-                newBadges.push('first_cleanup');
+                cleanerNewBadges.push('first_cleanup');
               }
 
               // Bronze cleaner badge (5 cleanups)
@@ -332,7 +273,7 @@ export const awardPointsAndBadges = functions.firestore
                 currentChallenges === 5 &&
                 !(cleanerData.badges || []).includes('cleaner_bronze')
               ) {
-                newBadges.push('cleaner_bronze');
+                cleanerNewBadges.push('cleaner_bronze');
               }
 
               // Century club badge (100 points)
@@ -340,7 +281,7 @@ export const awardPointsAndBadges = functions.firestore
                 newCleanerPoints >= 100 &&
                 !(cleanerData.badges || []).includes('century_club')
               ) {
-                newBadges.push('century_club');
+                cleanerNewBadges.push('century_club');
               }
 
               const updateData: any = {
@@ -353,40 +294,70 @@ export const awardPointsAndBadges = functions.firestore
                 lastActive: admin.firestore.FieldValue.serverTimestamp(),
               };
 
-              if (newBadges.length > 0) {
+              if (cleanerNewBadges.length > 0) {
                 updateData.badges = admin.firestore.FieldValue.arrayUnion(
-                  ...newBadges
+                  ...cleanerNewBadges
                 );
                 console.log(
-                  `🏅 Awarding badges to ${cleanerId}: ${newBadges.join(', ')}`
+                  `Awarding badges to ${cleanerId}: ${cleanerNewBadges.join(
+                    ', '
+                  )}`
                 );
               }
 
               transaction.update(cleanerRef, updateData);
               console.log(
-                `✅ Updated cleaner ${cleanerId}: ${newCleanerPoints} points, level ${newLevel}`
+                `Updated cleaner ${cleanerId}: ${newCleanerPoints} points, level ${newLevel}`
               );
             }
 
-            return { reporterPoints, cleanerPoints };
+            return {
+              reporterPoints,
+              cleanerPoints,
+              reporterLeveledUp,
+              cleanerLeveledUp,
+              cleanerNewBadges,
+            };
           });
 
-        console.log(
-          `🎉 Successfully awarded points: ${JSON.stringify(result)}`
-        );
+        // NOTIFICATIONS: Send completion notifications
+        try {
+          // Notify cleaner about points earned
+          await NotificationService.sendToUser(cleanerId, {
+            title: 'Points Earned!',
+            body: `You earned ${cleanerPoints} points for completing the cleanup!`,
+            data: {
+              type: NotificationType.POINTS_AWARDED,
+              action: 'view_profile',
+              points: cleanerPoints.toString(),
+              reportId: reportId,
+            },
+            priority: 'normal',
+          });
+
+          // Level up notifications are handled by the user document trigger
+          // Badge notifications are handled by the user document trigger
+
+          console.log('Sent points notification to cleaner');
+        } catch (notifyError) {
+          console.error(
+            'Failed to send completion notifications:',
+            notifyError
+          );
+        }
+
+        console.log(`Successfully awarded points: ${JSON.stringify(result)}`);
         return { success: true, ...result };
       } catch (error) {
-        console.error(
-          `❌ Error awarding points for report ${reportId}:`,
-          error
-        );
+        console.error(`Error awarding points for report ${reportId}:`, error);
         return { success: false, error: String(error) };
       }
     }
 
     return null;
   });
-// Add this NEW function for awarding badges on report creation
+
+// Enhanced report badge function with notifications
 export const awardReportBadges = functions.firestore
   .document('trashReports/{reportId}')
   .onCreate(async (snap, context) => {
@@ -394,15 +365,14 @@ export const awardReportBadges = functions.firestore
     const reportId = context.params.reportId;
     const reporterId = reportData.reporterId;
 
-    console.log(`🎯 New report created: ${reportId} by ${reporterId}`);
+    console.log(`New report created: ${reportId} by ${reporterId}`);
 
     try {
-      // Get the user document
       const userRef = admin.firestore().collection('users').doc(reporterId);
       const userDoc = await userRef.get();
 
       if (!userDoc.exists) {
-        console.log(`❌ User ${reporterId} not found`);
+        console.log(`User ${reporterId} not found`);
         return;
       }
 
@@ -416,16 +386,15 @@ export const awardReportBadges = functions.firestore
 
       if (totalReports === 1 && !currentBadges.includes('first_report')) {
         newBadges.push('first_report');
-        console.log(`🏅 Awarding "first_report" badge to ${reporterId}`);
+        console.log(`Awarding "first_report" badge to ${reporterId}`);
       }
 
       // Award "Bronze Reporter" badge for 10 reports
       if (totalReports === 10 && !currentBadges.includes('reporter_bronze')) {
         newBadges.push('reporter_bronze');
-        console.log(`🏅 Awarding "reporter_bronze" badge to ${reporterId}`);
+        console.log(`Awarding "reporter_bronze" badge to ${reporterId}`);
       }
 
-      // Update user with new badges if any
       const updateData: any = {
         'stats.reportsSubmitted': admin.firestore.FieldValue.increment(1),
         lastActive: admin.firestore.FieldValue.serverTimestamp(),
@@ -435,12 +404,12 @@ export const awardReportBadges = functions.firestore
         updateData.badges = admin.firestore.FieldValue.arrayUnion(...newBadges);
 
         // Award points for badges
-        const badgePoints = newBadges.length * 10; // 10 points per badge
+        const badgePoints = newBadges.length * 10;
         updateData.totalPoints =
           admin.firestore.FieldValue.increment(badgePoints);
 
         console.log(
-          `🎉 Awarded ${newBadges.length} badges and ${badgePoints} points to ${reporterId}`
+          `Awarded ${newBadges.length} badges and ${badgePoints} points to ${reporterId}`
         );
       }
 
@@ -448,7 +417,7 @@ export const awardReportBadges = functions.firestore
 
       return { success: true, badges: newBadges };
     } catch (error) {
-      console.error(`❌ Error awarding report badges for ${reportId}:`, error);
+      console.error(`Error awarding report badges for ${reportId}:`, error);
       return { success: false, error: String(error) };
     }
   });
@@ -492,26 +461,35 @@ function calculateLevel(points: number): number {
   return Math.floor(points / 200) + 1;
 }
 
-// Import your initialization functions
+// Import all modules
 export {
   initializeDatabase,
   resetDatabase,
   createTestData,
 } from './initialization';
-
-/* export {
+export {
   verifyCleanupProof,
   requestManualReview,
-} from './cleanup_verification'; */
-// functions/src/index.ts - MODIFY EXISTING FILE
-
-export {
-  verifyCleanupProof, // Use new enhanced version
-  requestManualReview,
-} from './enhanced_cleanup_verification'; // Changed import
-
+} from './enhanced_cleanup_verification';
 export {
   sendDailyReminders,
   resetMonthlyLeaderboard,
   updateWeeklyStats,
+  cleanupOldNotifications,
+  updateGlobalStats,
 } from './scheduled_functions';
+
+// Export all notification functions
+export {
+  NotificationService,
+  notifyNearbyUsers,
+  notifyChallengAccepted,
+  sendChallengeReminders,
+  notifyVerificationResult,
+  notifyBadgeEarned,
+  notifyLevelUp,
+  notifyLeaderboardUpdates,
+  notifyMonthlyReset,
+  updateFCMToken,
+  removeFCMToken,
+} from './notification_service';
