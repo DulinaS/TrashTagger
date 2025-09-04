@@ -8,6 +8,7 @@ import '../../providers/user_provider.dart';
 import '../../services/notification_service.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/common/custom_button.dart';
+import 'edit_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -225,7 +226,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('Update your name and photo'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // Navigate to edit profile
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EditProfileScreen()),
+                );
               },
             ),
 
