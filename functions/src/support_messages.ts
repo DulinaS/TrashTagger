@@ -127,22 +127,6 @@ export const notifyAdminNewSupportMessage = functions.firestore
         return { success: false, reason: 'Email not configured' };
       }
 
-      // Priority emoji
-      const priorityEmoji = {
-        low: '🔵',
-        medium: '🟡',
-        high: '🔴',
-      };
-
-      // Category emoji
-      const categoryEmoji = {
-        bug: '🐛',
-        feature: '💡',
-        general: '💬',
-        account: '👤',
-        technical: '⚙️',
-      };
-
       const mailOptions = {
         from: emailConfig.user,
         to: emailConfig.admin,
