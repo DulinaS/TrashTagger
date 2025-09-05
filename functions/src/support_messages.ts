@@ -325,7 +325,7 @@ export const notifyUserSupportResponse = functions.firestore
 // GET USER'S SUPPORT MESSAGES
 // ================================
 
-export const getUserSupportMessages = functions.https.onCall(
+/* export const getUserSupportMessages = functions.https.onCall(
   async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -354,6 +354,69 @@ export const getUserSupportMessages = functions.https.onCall(
         id: doc.id,
         ...doc.data(),
       }));
+
+      return {
+        success: true,
+        messages,
+        count: messages.length,
+      };
+    } catch (error) {
+      console.error('Error getting user support messages:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'Failed to get support messages'
+      );
+    }
+  }
+); */
+export const getUserSupportMessages = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'User must be authenticated'
+      );
+    }
+
+    try {
+      const userId = context.auth.uid;
+      const { limit = 10, status = 'all' } = data;
+
+      let query = admin
+        .firestore()
+        .collection('supportMessages')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(limit);
+
+      if (status !== 'all') {
+        query = query.where('status', '==', status);
+      }
+
+      const snapshot = await query.get();
+      const messages = snapshot.docs.map((doc) => {
+        const data = doc.data();
+
+        // Convert Firestore timestamps to ISO strings for consistent handling
+        const message = {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt
+            ? data.createdAt.toDate().toISOString()
+            : null,
+          updatedAt: data.updatedAt
+            ? data.updatedAt.toDate().toISOString()
+            : null,
+          respondedAt: data.respondedAt
+            ? data.respondedAt.toDate().toISOString()
+            : null,
+          adminNotifiedAt: data.adminNotifiedAt
+            ? data.adminNotifiedAt.toDate().toISOString()
+            : null,
+        };
+
+        return message;
+      });
 
       return {
         success: true,

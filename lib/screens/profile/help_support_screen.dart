@@ -710,21 +710,32 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
     }
   }
 
+  // In your help_support_screen.dart file, update the _formatTimestamp method:
+
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null) return 'Unknown';
 
     try {
       DateTime date;
-      if (timestamp is Map && timestamp.containsKey('_seconds')) {
+
+      if (timestamp is DateTime) {
+        date = timestamp;
+      } else if (timestamp is Map && timestamp.containsKey('_seconds')) {
+        // Handle Firestore timestamp format
+        final seconds = timestamp['_seconds'];
+        final nanoseconds = timestamp['_nanoseconds'] ?? 0;
         date = DateTime.fromMillisecondsSinceEpoch(
-          timestamp['_seconds'] * 1000,
+          (seconds * 1000) + (nanoseconds ~/ 1000000),
         );
+      } else if (timestamp is String) {
+        date = DateTime.parse(timestamp);
       } else {
-        date = DateTime.parse(timestamp.toString());
+        return 'Unknown';
       }
 
       return Helpers.formatDateTime(date);
     } catch (e) {
+      print('Error formatting timestamp: $e');
       return 'Unknown';
     }
   }
