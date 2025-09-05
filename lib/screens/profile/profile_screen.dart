@@ -11,6 +11,7 @@ import '../../themes/app_theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../models/user_model.dart';
+import 'help_support_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -526,7 +527,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: const Text('Help & Support'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // TODO: Navigate to help
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HelpSupportScreen()),
+                );
               },
             ),
             ListTile(

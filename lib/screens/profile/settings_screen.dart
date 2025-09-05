@@ -9,6 +9,7 @@ import '../../services/notification_service.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/common/custom_button.dart';
 import 'edit_profile_screen.dart';
+import 'help_support_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -283,14 +284,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
 
             ListTile(
-              title: const Text('Help & Support'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                _showHelpDialog();
-              },
-            ),
-
-            ListTile(
               title: const Text('Terms of Service'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
@@ -547,32 +540,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showHelpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Help & Support'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('📧 Email: support@trashtagger.com'),
-            SizedBox(height: 8),
-            Text('🌐 Website: www.trashtagger.com'),
-            SizedBox(height: 8),
-            Text('📱 Follow us on social media for updates'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
           ),
         ],
       ),

@@ -493,3 +493,10 @@ export {
   updateFCMToken,
   removeFCMToken,
 } from './notification_service';
+
+export {
+  submitSupportMessage,
+  notifyAdminNewSupportMessage,
+  notifyUserSupportResponse,
+  getUserSupportMessages,
+} from './support_messages';
