@@ -733,7 +733,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       }
 
       // Upload image to Firebase Storage
-      final imageUrl = await _storageService.uploadTrashReportImage(
+      final imageUrl = await StorageService.uploadTrashReportImage(
         widget.imageFile,
         authProvider.user!.uid,
       );

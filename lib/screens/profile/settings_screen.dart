@@ -8,6 +8,8 @@ import '../../providers/user_provider.dart';
 import '../../services/notification_service.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/common/custom_button.dart';
+import 'edit_profile_screen.dart';
+import 'help_support_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -225,7 +227,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('Update your name and photo'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // Navigate to edit profile
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EditProfileScreen()),
+                );
               },
             ),
 
@@ -277,14 +282,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text('About', style: AppTheme.headlineMedium),
             const SizedBox(height: 16),
-
-            ListTile(
-              title: const Text('Help & Support'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                _showHelpDialog();
-              },
-            ),
 
             ListTile(
               title: const Text('Terms of Service'),
@@ -543,32 +540,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showHelpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Help & Support'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('📧 Email: support@trashtagger.com'),
-            SizedBox(height: 8),
-            Text('🌐 Website: www.trashtagger.com'),
-            SizedBox(height: 8),
-            Text('📱 Follow us on social media for updates'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
           ),
         ],
       ),

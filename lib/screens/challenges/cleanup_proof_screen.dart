@@ -1033,7 +1033,7 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
         throw Exception('User not authenticated');
       }
 
-      final proofURL = await _storageService.uploadCleanupProofImage(
+      final proofURL = await StorageService.uploadCleanupProofImage(
         _proofImage!,
         widget.challenge.id,
         authProvider.user!.uid,
