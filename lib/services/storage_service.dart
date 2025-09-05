@@ -1,4 +1,4 @@
-// lib/services/storage_service.dart
+// lib/services/storage_service.dart - Updated version
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -6,15 +6,15 @@ import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as path;
 
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final Uuid _uuid = Uuid();
+  static final FirebaseStorage _storage = FirebaseStorage.instance;
+  static final Uuid _uuid = Uuid();
 
   // ================================
   // IMAGE UPLOAD METHODS
   // ================================
 
   // Upload image file (for trash reports and cleanup proofs)
-  Future<String> uploadImage(
+  static Future<String> uploadImage(
     File imageFile,
     String folder, {
     String? customFileName,
@@ -63,7 +63,7 @@ class StorageService {
   }
 
   // Upload image from bytes (useful for camera captures)
-  Future<String> uploadImageFromBytes(
+  static Future<String> uploadImageFromBytes(
     Uint8List imageBytes,
     String folder, {
     String? customFileName,
@@ -113,7 +113,7 @@ class StorageService {
   // ================================
 
   // Upload trash report image
-  Future<String> uploadTrashReportImage(
+  static Future<String> uploadTrashReportImage(
     File imageFile,
     String reporterId,
   ) async {
@@ -132,7 +132,7 @@ class StorageService {
   }
 
   // Upload cleanup proof image
-  Future<String> uploadCleanupProofImage(
+  static Future<String> uploadCleanupProofImage(
     File imageFile,
     String reportId,
     String cleanerId,
@@ -151,18 +151,95 @@ class StorageService {
     }
   }
 
-  // Upload user profile image
-  Future<String> uploadProfileImage(File imageFile, String userId) async {
+  // Add this method to your existing StorageService class
+  // Update the uploadProfilePhoto method to clean up after upload
+  static Future<String> uploadProfilePhoto(
+    File imageFile,
+    String userId,
+  ) async {
     try {
+      // Delete old profile photo first if it exists
+      try {
+        String oldPhotoPath = 'profile_photos/profile_$userId.jpg';
+        Reference oldRef = _storage.ref().child(oldPhotoPath);
+        await oldRef.delete();
+      } catch (e) {
+        print('Old profile photo not found: $e');
+      }
+
       String fileName = 'profile_$userId.jpg';
-      return await uploadImage(
+      String downloadUrl = await uploadImage(
         imageFile,
-        'profile_images',
+        'profile_photos',
         customFileName: fileName,
         compressImage: true,
       );
+
+      // Clean up local file after successful upload
+      try {
+        if (await imageFile.exists()) {
+          await imageFile.delete();
+        }
+      } catch (e) {
+        print('Could not delete temporary file: $e');
+      }
+
+      return downloadUrl;
     } catch (e) {
-      throw StorageException('Failed to upload profile image: $e');
+      throw StorageException('Failed to upload profile photo: $e');
+    }
+  }
+
+  // Upload user profile image (keeping for backward compatibility)
+  static Future<String> uploadProfileImage(
+    File imageFile,
+    String userId,
+  ) async {
+    return await uploadProfilePhoto(imageFile, userId);
+  }
+
+  // ================================
+  // SUPPORT MESSAGE ATTACHMENTS
+  // ================================
+
+  // Upload support message attachment
+  static Future<String> uploadSupportAttachment(
+    File file,
+    String userId,
+    String messageId,
+  ) async {
+    try {
+      String fileName =
+          'attachment_${messageId}_${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
+
+      // Get file bytes
+      Uint8List fileBytes = await file.readAsBytes();
+
+      // Create reference
+      Reference ref = _storage.ref().child('support_attachments/$fileName');
+
+      // Determine content type
+      String contentType = _getContentType(file.path);
+
+      // Set metadata
+      SettableMetadata metadata = SettableMetadata(
+        contentType: contentType,
+        customMetadata: {
+          'uploadedAt': DateTime.now().toIso8601String(),
+          'userId': userId,
+          'messageId': messageId,
+          'originalName': path.basename(file.path),
+        },
+      );
+
+      // Upload file
+      UploadTask uploadTask = ref.putData(fileBytes, metadata);
+      await uploadTask;
+
+      // Get download URL
+      return await ref.getDownloadURL();
+    } catch (e) {
+      throw StorageException('Failed to upload support attachment: $e');
     }
   }
 
@@ -170,8 +247,19 @@ class StorageService {
   // FILE MANAGEMENT
   // ================================
 
+  // Delete old profile photo
+  static Future<void> _deleteOldProfilePhoto(String userId) async {
+    try {
+      String oldPhotoPath = 'profile_photos/profile_$userId.jpg';
+      await deleteFile(oldPhotoPath);
+    } catch (e) {
+      // Ignore error if old photo doesn't exist
+      print('Old profile photo not found or could not be deleted: $e');
+    }
+  }
+
   // Delete file by URL
-  Future<void> deleteFileByUrl(String downloadUrl) async {
+  static Future<void> deleteFileByUrl(String downloadUrl) async {
     try {
       Reference ref = _storage.refFromURL(downloadUrl);
       await ref.delete();
@@ -186,7 +274,7 @@ class StorageService {
   }
 
   // Delete file by path
-  Future<void> deleteFile(String filePath) async {
+  static Future<void> deleteFile(String filePath) async {
     try {
       Reference ref = _storage.ref().child(filePath);
       await ref.delete();
@@ -200,7 +288,7 @@ class StorageService {
   }
 
   // Get file metadata
-  Future<FullMetadata?> getFileMetadata(String downloadUrl) async {
+  static Future<FullMetadata?> getFileMetadata(String downloadUrl) async {
     try {
       Reference ref = _storage.refFromURL(downloadUrl);
       return await ref.getMetadata();
@@ -219,7 +307,7 @@ class StorageService {
   // ================================
 
   // Delete multiple files
-  Future<void> deleteMultipleFiles(List<String> downloadUrls) async {
+  static Future<void> deleteMultipleFiles(List<String> downloadUrls) async {
     try {
       List<Future<void>> deleteFutures = downloadUrls
           .map((url) => deleteFileByUrl(url))
@@ -231,7 +319,7 @@ class StorageService {
   }
 
   // List files in a folder
-  Future<List<Reference>> listFilesInFolder(
+  static Future<List<Reference>> listFilesInFolder(
     String folderPath, {
     int maxResults = 100,
   }) async {
@@ -251,14 +339,40 @@ class StorageService {
   // ================================
 
   // Generate unique filename
-  String _generateFileName(String originalPath) {
+  static String _generateFileName(String originalPath) {
     String extension = path.extension(originalPath);
     if (extension.isEmpty) extension = '.jpg';
     return '${_uuid.v4()}$extension';
   }
 
+  // Get content type based on file extension
+  static String _getContentType(String filePath) {
+    String extension = path.extension(filePath).toLowerCase();
+    switch (extension) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.gif':
+        return 'image/gif';
+      case '.webp':
+        return 'image/webp';
+      case '.pdf':
+        return 'application/pdf';
+      case '.txt':
+        return 'text/plain';
+      case '.doc':
+        return 'application/msword';
+      case '.docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
   // Compress image (basic implementation)
-  Future<Uint8List> _compressImage(Uint8List imageBytes) async {
+  static Future<Uint8List> _compressImage(Uint8List imageBytes) async {
     // This is a placeholder for image compression
     // In a real app, you might use packages like:
     // - flutter_image_compress
@@ -274,7 +388,7 @@ class StorageService {
   // ================================
 
   // Upload with progress tracking
-  Stream<double> uploadImageWithProgress(
+  static Stream<double> uploadImageWithProgress(
     File imageFile,
     String folder, {
     String? customFileName,
@@ -324,12 +438,38 @@ class StorageService {
     }
   }
 
+  // Upload profile photo with progress
+  static Stream<double> uploadProfilePhotoWithProgress(
+    File imageFile,
+    String userId,
+  ) async* {
+    try {
+      // Delete old profile photo first
+      await _deleteOldProfilePhoto(userId);
+
+      String fileName = 'profile_$userId.jpg';
+
+      await for (double progress in uploadImageWithProgress(
+        imageFile,
+        'profile_photos',
+        customFileName: fileName,
+        compressImage: true,
+      )) {
+        yield progress;
+      }
+    } catch (e) {
+      throw StorageException(
+        'Failed to upload profile photo with progress: $e',
+      );
+    }
+  }
+
   // ================================
   // UTILITY METHODS
   // ================================
 
   // Get storage usage for a user
-  Future<StorageUsageInfo> getUserStorageUsage(String userId) async {
+  static Future<StorageUsageInfo> getUserStorageUsage(String userId) async {
     try {
       int totalSize = 0;
       int fileCount = 0;
@@ -338,19 +478,31 @@ class StorageService {
       List<String> userFolders = [
         'trash_reports',
         'cleanup_proofs',
-        'profile_images',
+        'profile_photos',
+        'support_attachments',
       ];
 
       for (String folder in userFolders) {
-        List<Reference> files = await listFilesInFolder(folder);
+        try {
+          List<Reference> files = await listFilesInFolder(folder);
 
-        for (Reference file in files) {
-          FullMetadata? metadata = await file.getMetadata();
-          if (metadata != null &&
-              metadata.customMetadata?['userId'] == userId) {
-            totalSize += metadata.size ?? 0;
-            fileCount++;
+          for (Reference file in files) {
+            try {
+              FullMetadata? metadata = await file.getMetadata();
+              if (metadata != null &&
+                  (metadata.customMetadata?['userId'] == userId ||
+                      file.name.contains(userId))) {
+                totalSize += metadata.size ?? 0;
+                fileCount++;
+              }
+            } catch (e) {
+              // Skip files that can't be accessed
+              continue;
+            }
           }
+        } catch (e) {
+          // Skip folders that can't be accessed
+          continue;
         }
       }
 
@@ -365,7 +517,7 @@ class StorageService {
   }
 
   // Check if file exists
-  Future<bool> fileExists(String downloadUrl) async {
+  static Future<bool> fileExists(String downloadUrl) async {
     try {
       Reference ref = _storage.refFromURL(downloadUrl);
       await ref.getMetadata();
@@ -381,12 +533,34 @@ class StorageService {
   }
 
   // Get optimized image URL (for thumbnails)
-  String getOptimizedImageUrl(String originalUrl, {int? width, int? height}) {
+  static String getOptimizedImageUrl(
+    String originalUrl, {
+    int? width,
+    int? height,
+  }) {
     // This would work with Firebase Storage image optimization
     // For now, return original URL
     // In production, you might use Firebase Extensions or Cloud Functions
     // to generate optimized images
     return originalUrl;
+  }
+
+  // Validate file size
+  static Future<bool> isValidFileSize(File file, {int maxSizeMB = 5}) async {
+    try {
+      int fileSizeBytes = await file.length();
+      int maxSizeBytes = maxSizeMB * 1024 * 1024;
+      return fileSizeBytes <= maxSizeBytes;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Validate image file
+  static bool isValidImageFile(String filePath) {
+    String extension = path.extension(filePath).toLowerCase();
+    List<String> validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return validExtensions.contains(extension);
   }
 }
 
