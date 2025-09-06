@@ -221,57 +221,70 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
             return RefreshIndicator(
               onRefresh: _refreshData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome Section
-                    SlideInAnimation(
-                      delay: AnimationConstants.microDelay,
-                      child: _buildWelcomeSection(user),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Quick Stats
-                    StaggeredListAnimation(
-                      itemDelay: const Duration(milliseconds: 80),
-                      children: [_buildQuickStats(user)],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Notifications Preview
-                    if (_unreadNotificationCount > 0) ...[
-                      SlideInAnimation(
-                        delay: AnimationConstants.mediumDelay,
-                        child: _buildNotificationPreview(),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      20,
+                      20,
+                      20,
+                      120,
+                    ), // Add bottom padding for nav bar
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      const SizedBox(height: 24),
-                    ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Welcome Section
+                          SlideInAnimation(
+                            delay: AnimationConstants.microDelay,
+                            child: _buildWelcomeSection(user),
+                          ),
+                          const SizedBox(height: 24),
 
-                    // My Reports Section
-                    SlideInAnimation(
-                      delay: AnimationConstants.longDelay,
-                      child: _buildMyReportsSection(),
-                    ),
-                    const SizedBox(height: 24),
+                          // Quick Stats
+                          StaggeredListAnimation(
+                            itemDelay: const Duration(milliseconds: 80),
+                            children: [_buildQuickStats(user)],
+                          ),
+                          const SizedBox(height: 24),
 
-                    // Recent Activity
-                    SlideInAnimation(
-                      delay: AnimationConstants.extraLongDelay,
-                      child: _buildRecentActivity(),
-                    ),
-                    const SizedBox(height: 24),
+                          // Notifications Preview
+                          if (_unreadNotificationCount > 0) ...[
+                            SlideInAnimation(
+                              delay: AnimationConstants.mediumDelay,
+                              child: _buildNotificationPreview(),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
 
-                    // Quick Actions
-                    ScaleInAnimation(
-                      delay: const Duration(milliseconds: 600),
-                      child: _buildQuickActions(),
+                          // My Reports Section
+                          SlideInAnimation(
+                            delay: AnimationConstants.longDelay,
+                            child: _buildMyReportsSection(),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Recent Activity
+                          SlideInAnimation(
+                            delay: AnimationConstants.extraLongDelay,
+                            child: _buildRecentActivity(),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Quick Actions
+                          ScaleInAnimation(
+                            delay: const Duration(milliseconds: 600),
+                            child: _buildQuickActions(),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 100),
-                  ],
-                ),
+                  );
+                },
               ),
             );
           },
@@ -316,14 +329,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(width: 12),
-            ShaderMask(
-              shaderCallback: (bounds) =>
-                  AppTheme.primaryGradient.createShader(bounds),
-              child: Text(
-                'TrashTagger',
-                style: AppTheme.titleLarge.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+            Flexible(
+              child: ShaderMask(
+                shaderCallback: (bounds) =>
+                    AppTheme.primaryGradient.createShader(bounds),
+                child: Text(
+                  'TrashTagger',
+                  style: AppTheme.titleLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -519,10 +535,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Progress to Level ${user.level + 1}',
-                    style: AppTheme.labelMedium.copyWith(
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      'Progress to Level ${user.level + 1}',
+                      style: AppTheme.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
@@ -618,11 +637,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     LinearGradient gradient,
   ) {
     return ModernCard(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16), // Reduced padding
       child: Column(
+        mainAxisSize: MainAxisSize.min, // Important: prevents overflow
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10), // Reduced padding
             decoration: BoxDecoration(
               gradient: gradient,
               borderRadius: BorderRadius.circular(16),
@@ -634,21 +654,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
-            child: Icon(icon, size: 28, color: Colors.white),
+            child: Icon(
+              icon,
+              size: 24,
+              color: Colors.white,
+            ), // Reduced icon size
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Text(
             value,
-            style: AppTheme.headlineMedium.copyWith(
+            style: AppTheme.headlineSmall.copyWith(
+              // Smaller text
               fontWeight: FontWeight.w700,
               color: gradient.colors.first,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2), // Reduced spacing
           Text(
             label,
-            style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+            style: AppTheme.bodySmall.copyWith(
+              fontWeight: FontWeight.w500,
+            ), // Smaller text
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -717,28 +746,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.assignment_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.assignment_rounded,
-                      color: Colors.white,
-                      size: 20,
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        'My Reports',
+                        style: AppTheme.headlineMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'My Reports',
-                    style: AppTheme.headlineMedium.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (_userReports.isNotEmpty)
                 TextButton(
@@ -777,27 +811,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildEmptyReports() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(24), // Reduced padding
       child: Column(
         children: [
           ScaleInAnimation(
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16), // Reduced padding
               decoration: BoxDecoration(
                 gradient: AppTheme.primaryGradient,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
                 Icons.camera_alt_outlined,
-                size: 48,
+                size: 40, // Reduced icon size
                 color: Colors.white,
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             'No reports yet',
-            style: AppTheme.headlineMedium.copyWith(
+            style: AppTheme.titleLarge.copyWith(
+              // Smaller text
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -807,7 +842,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             style: AppTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reduced spacing
           ModernGradientButton(
             text: 'Report Trash',
             onPressed: () => _navigateToTab(2),
@@ -901,10 +936,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Icon(Icons.eco_rounded, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Community Activity',
-                style: AppTheme.headlineMedium.copyWith(
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  'Community Activity',
+                  style: AppTheme.headlineMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -1015,7 +1053,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final actions = [
       {
         'title': 'Report Trash',
-        'subtitle': 'Take a photo and report',
+        'subtitle': 'Take photo & report',
         'icon': Icons.camera_alt_rounded,
         'gradient': AppTheme.primaryGradient,
         'onTap': () => _navigateToTab(2),
@@ -1078,7 +1116,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.1,
+            childAspectRatio: 1.0, // Adjusted for better fit
           ),
           itemCount: actions.length,
           itemBuilder: (context, index) {
@@ -1109,12 +1147,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return ModernCard(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8), // Reduced from 12
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min, // Important: prevents overflow
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(10), // Reduced from 12
               decoration: BoxDecoration(
                 gradient: gradient,
                 borderRadius: BorderRadius.circular(16),
@@ -1126,19 +1165,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ],
               ),
-              child: Icon(icon, size: 28, color: Colors.white),
+              child: Icon(
+                icon,
+                size: 20,
+                color: Colors.white,
+              ), // Reduced from 24
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8), // Reduced from 12
             Text(
               title,
-              style: AppTheme.titleMedium.copyWith(fontWeight: FontWeight.w600),
+              style: AppTheme.titleSmall.copyWith(fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2), // Reduced from 2 (no change)
             Text(
               subtitle,
-              style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+              style: AppTheme.bodySmall.copyWith(
+                color: AppTheme.textSecondary,
+                fontSize: 10, // Reduced font size
+              ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

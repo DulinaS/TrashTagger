@@ -65,7 +65,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     BottomNavItem(
       icon: Icons.cleaning_services_outlined,
       activeIcon: Icons.cleaning_services_rounded,
-      label: 'Challenges',
+      label: 'To-Do',
       gradient: LinearGradient(
         colors: [AppTheme.accentPurple, AppTheme.primaryTeal],
       ),
@@ -219,8 +219,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         return Transform.translate(
           offset: Offset(0, 100 * (1 - _navBarController.value)),
           child: Container(
-            margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             decoration: BoxDecoration(
               color: AppTheme.backgroundSecondary,
               borderRadius: BorderRadius.circular(24),
@@ -240,7 +240,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                 final item = entry.value;
                 final isSelected = _currentIndex == index;
 
-                return _buildNavItem(item, index, isSelected);
+                return Flexible(child: _buildNavItem(item, index, isSelected));
               }).toList(),
             ),
           ),
@@ -256,7 +256,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         animation: _iconAnimations[index],
         builder: (context, child) {
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: item.isCenter
                 ? _buildCenterNavItem(item, isSelected, index)
                 : _buildRegularNavItem(item, index, isSelected),
@@ -303,7 +303,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     return AnimatedContainer(
       duration: AnimationConstants.fastDuration,
       curve: AnimationConstants.smoothCurve,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         gradient: isSelected ? item.gradient.withOpacity(0.1) : null,
         borderRadius: BorderRadius.circular(16),
@@ -317,7 +317,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               return Transform.scale(
                 scale: 1.0 + (_iconAnimations[index].value * 0.2),
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   decoration: isSelected
                       ? BoxDecoration(
                           gradient: item.gradient,
@@ -336,13 +336,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   child: Icon(
                     isSelected ? item.activeIcon : item.icon,
                     color: isSelected ? Colors.white : AppTheme.textTertiary,
-                    size: 20,
+                    size: 18,
                   ),
                 ),
               );
             },
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           AnimatedDefaultTextStyle(
             duration: AnimationConstants.fastDuration,
             style: AppTheme.labelSmall.copyWith(
@@ -350,8 +350,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   ? item.gradient.colors.first
                   : AppTheme.textTertiary,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 10,
             ),
-            child: Text(item.label),
+            child: Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

@@ -571,6 +571,12 @@ class AppTheme {
     color: textPrimary,
     letterSpacing: -0.1,
   );
+  static TextStyle get headlineSmall => GoogleFonts.inter(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: textPrimary,
+    letterSpacing: -0.1,
+  );
 
   static TextStyle get titleLarge => GoogleFonts.inter(
     fontSize: 18,
@@ -580,6 +586,12 @@ class AppTheme {
 
   static TextStyle get titleMedium => GoogleFonts.inter(
     fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: textPrimary,
+  );
+
+  static TextStyle get titleSmall => GoogleFonts.inter(
+    fontSize: 14,
     fontWeight: FontWeight.w600,
     color: textPrimary,
   );
