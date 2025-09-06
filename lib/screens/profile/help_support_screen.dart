@@ -1,11 +1,12 @@
-// lib/screens/profile/help_support_screen.dart
+// lib/screens/profile/help_support_screen.dart - Modern Vibrant Design (Completed)
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../themes/app_theme.dart';
 import '../../services/support_service.dart';
-import '../../widgets/common/custom_button.dart';
-import '../../widgets/common/loading_widget.dart';
+import '../../widgets/modern/modern_widgets.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/animation_constants.dart';
 import '../../utils/helpers.dart';
 
 class HelpSupportScreen extends StatefulWidget {
@@ -81,8 +82,18 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Support message submitted successfully!'),
-          backgroundColor: AppTheme.primaryGreen,
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              const Text('Support message submitted successfully!'),
+            ],
+          ),
+          backgroundColor: AppTheme.primaryEmerald,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
 
@@ -98,119 +109,227 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
 
   void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppTheme.dangerRed),
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: Text('Help & Support'),
-        elevation: 0,
-        bottom: TabBar(
+      backgroundColor: AppTheme.backgroundPrimary,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [_buildModernAppBar()];
+        },
+        body: TabBarView(
           controller: _tabController,
-          tabs: [
-            Tab(text: 'FAQ', icon: Icon(Icons.help_outline)),
-            Tab(text: 'Contact', icon: Icon(Icons.email_outlined)),
-            Tab(text: 'Messages', icon: Icon(Icons.message_outlined)),
-          ],
+          children: [_buildFAQTab(), _buildContactTab(), _buildMessagesTab()],
         ),
       ),
-      body: TabBarView(
+    );
+  }
+
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 120,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.backgroundPrimary,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.infoBlue.withOpacity(0.1),
+                AppTheme.primaryTeal.withOpacity(0.05),
+              ],
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.support_agent_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Help & Support',
+              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+      ),
+      bottom: TabBar(
         controller: _tabController,
-        children: [_buildFAQTab(), _buildContactTab(), _buildMessagesTab()],
+        indicatorColor: AppTheme.infoBlue,
+        labelColor: AppTheme.infoBlue,
+        unselectedLabelColor: AppTheme.textSecondary,
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.help_outline_rounded, size: 18),
+                const SizedBox(width: 8),
+                Text('FAQ'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.email_outlined, size: 18),
+                const SizedBox(width: 8),
+                Text('Contact'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.message_outlined, size: 18),
+                const SizedBox(width: 8),
+                Text('Messages'),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildFAQTab() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWelcomeCard(),
-          SizedBox(height: 24),
+          SlideInAnimation(
+            delay: AnimationConstants.microDelay,
+            child: _buildWelcomeCard(),
+          ),
+          const SizedBox(height: 24),
 
-          Text('Frequently Asked Questions', style: AppTheme.headlineMedium),
-          SizedBox(height: 16),
+          SlideInAnimation(
+            delay: AnimationConstants.shortDelay,
+            child: _buildFAQSection('Getting Started', [
+              {
+                'question': 'How do I report trash?',
+                'answer':
+                    'Tap the camera icon in the bottom navigation, take a photo of the trash, and provide location details. Our AI will verify the report.',
+              },
+              {
+                'question': 'How do I earn points?',
+                'answer':
+                    'You earn points by reporting trash (10-25 points) and completing cleanup challenges (20-50 points). Points vary based on trash severity.',
+              },
+              {
+                'question': 'What are cleanup challenges?',
+                'answer':
+                    'When someone reports trash, it becomes a cleanup challenge. You can accept it, clean it up, and submit proof to earn points and badges.',
+              },
+            ], AppTheme.primaryGradient),
+          ),
 
-          _buildFAQSection('Getting Started', [
-            {
-              'question': 'How do I report trash?',
-              'answer':
-                  'Tap the camera icon in the bottom navigation, take a photo of the trash, and provide location details. Our AI will verify the report.',
-            },
-            {
-              'question': 'How do I earn points?',
-              'answer':
-                  'You earn points by reporting trash (10-25 points) and completing cleanup challenges (20-50 points). Points vary based on trash severity.',
-            },
-            {
-              'question': 'What are cleanup challenges?',
-              'answer':
-                  'When someone reports trash, it becomes a cleanup challenge. You can accept it, clean it up, and submit proof to earn points and badges.',
-            },
-          ]),
+          const SizedBox(height: 16),
+          SlideInAnimation(
+            delay: AnimationConstants.mediumDelay,
+            child: _buildFAQSection('Points & Badges', [
+              {
+                'question': 'How does the level system work?',
+                'answer':
+                    'Levels are based on total points: Level 2 (50pts), Level 3 (150pts), Level 4 (300pts), Level 5 (500pts), and so on.',
+              },
+              {
+                'question': 'How do I earn badges?',
+                'answer':
+                    'Badges are earned automatically for milestones like first report, multiple cleanups, streaks, and special achievements.',
+              },
+              {
+                'question': 'What is the leaderboard?',
+                'answer':
+                    'The leaderboard shows top contributors. There are all-time, monthly, and weekly rankings based on points earned.',
+              },
+            ], AppTheme.warningGradient),
+          ),
 
-          SizedBox(height: 16),
-          _buildFAQSection('Points & Badges', [
-            {
-              'question': 'How does the level system work?',
-              'answer':
-                  'Levels are based on total points: Level 2 (50pts), Level 3 (150pts), Level 4 (300pts), Level 5 (500pts), and so on.',
-            },
-            {
-              'question': 'How do I earn badges?',
-              'answer':
-                  'Badges are earned automatically for milestones like first report, multiple cleanups, streaks, and special achievements.',
-            },
-            {
-              'question': 'What is the leaderboard?',
-              'answer':
-                  'The leaderboard shows top contributors. There are all-time, monthly, and weekly rankings based on points earned.',
-            },
-          ]),
+          const SizedBox(height: 16),
+          SlideInAnimation(
+            delay: AnimationConstants.longDelay,
+            child: _buildFAQSection('Safety & Verification', [
+              {
+                'question': 'Is it safe to clean up trash?',
+                'answer':
+                    'Always prioritize safety. Avoid hazardous materials, wear gloves, and report dangerous items to authorities instead of cleaning them yourself.',
+              },
+              {
+                'question': 'How does verification work?',
+                'answer':
+                    'We use AI to verify cleanup photos by comparing before/after images, checking location proximity, and analyzing image authenticity.',
+              },
+              {
+                'question': 'What if my cleanup is disputed?',
+                'answer':
+                    'Disputed cleanups are manually reviewed by our team. You can resubmit better proof or request a review.',
+              },
+            ], AppTheme.errorGradient),
+          ),
 
-          SizedBox(height: 16),
-          _buildFAQSection('Safety & Verification', [
-            {
-              'question': 'Is it safe to clean up trash?',
-              'answer':
-                  'Always prioritize safety. Avoid hazardous materials, wear gloves, and report dangerous items to authorities instead of cleaning them yourself.',
-            },
-            {
-              'question': 'How does verification work?',
-              'answer':
-                  'We use AI to verify cleanup photos by comparing before/after images, checking location proximity, and analyzing image authenticity.',
-            },
-            {
-              'question': 'What if my cleanup is disputed?',
-              'answer':
-                  'Disputed cleanups are manually reviewed by our team. You can resubmit better proof or request a review.',
-            },
-          ]),
-
-          SizedBox(height: 16),
-          _buildFAQSection('Technical Issues', [
-            {
-              'question': 'The app is not working properly',
-              'answer':
-                  'Try restarting the app, checking your internet connection, and updating to the latest version. Contact support if issues persist.',
-            },
-            {
-              'question': 'I\'m not receiving notifications',
-              'answer':
-                  'Check your notification settings in the app and your device settings. Make sure TrashTagger has permission to send notifications.',
-            },
-            {
-              'question': 'My location is not accurate',
-              'answer':
-                  'Ensure location services are enabled for TrashTagger in your device settings. Try moving to an area with better GPS reception.',
-            },
-          ]),
+          const SizedBox(height: 16),
+          SlideInAnimation(
+            delay: AnimationConstants.extraLongDelay,
+            child: _buildFAQSection(
+              'Technical Issues',
+              [
+                {
+                  'question': 'The app is not working properly',
+                  'answer':
+                      'Try restarting the app, checking your internet connection, and updating to the latest version. Contact support if issues persist.',
+                },
+                {
+                  'question': 'I\'m not receiving notifications',
+                  'answer':
+                      'Check your notification settings in the app and your device settings. Make sure TrashTagger has permission to send notifications.',
+                },
+                {
+                  'question': 'My location is not accurate',
+                  'answer':
+                      'Ensure location services are enabled for TrashTagger in your device settings. Try moving to an area with better GPS reception.',
+                },
+              ],
+              LinearGradient(
+                colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -218,65 +337,104 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
 
   Widget _buildContactTab() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Card(
-            child: Padding(
-              padding: EdgeInsets.all(20),
+          SlideInAnimation(
+            delay: AnimationConstants.microDelay,
+            child: ModernCard(
+              padding: const EdgeInsets.all(24),
+              backgroundColor: AppTheme.infoBlue.withOpacity(0.05),
+              border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.support_agent, color: AppTheme.primaryGreen),
-                      SizedBox(width: 12),
-                      Text('Contact Support', style: AppTheme.headlineMedium),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.support_agent_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Contact Support',
+                              style: AppTheme.headlineMedium.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Need help? Send us a message and we\'ll get back to you as soon as possible.',
+                              style: AppTheme.bodyMedium.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Need help? Send us a message and we\'ll get back to you as soon as possible.',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
 
           Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Category Selection
-                _buildCategorySelection(),
-                SizedBox(height: 16),
+                SlideInAnimation(
+                  delay: AnimationConstants.shortDelay,
+                  child: _buildCategorySelection(),
+                ),
+                const SizedBox(height: 16),
 
                 // Priority Selection
-                _buildPrioritySelection(),
-                SizedBox(height: 16),
+                SlideInAnimation(
+                  delay: AnimationConstants.mediumDelay,
+                  child: _buildPrioritySelection(),
+                ),
+                const SizedBox(height: 16),
 
                 // Subject Field
-                _buildSubjectField(),
-                SizedBox(height: 16),
+                SlideInAnimation(
+                  delay: AnimationConstants.longDelay,
+                  child: _buildSubjectField(),
+                ),
+                const SizedBox(height: 16),
 
                 // Message Field
-                _buildMessageField(),
-                SizedBox(height: 24),
+                SlideInAnimation(
+                  delay: AnimationConstants.extraLongDelay,
+                  child: _buildMessageField(),
+                ),
+                const SizedBox(height: 24),
 
                 // Submit Button
-                SizedBox(
-                  width: double.infinity,
-                  child: CustomButton(
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 600),
+                  child: ModernGradientButton(
                     text: 'Send Message',
                     onPressed: _isSubmitting ? null : _submitSupportMessage,
                     isLoading: _isSubmitting,
-                    icon: Icons.send,
+                    icon: _isSubmitting ? null : Icons.send_rounded,
+                    gradient: AppTheme.primaryGradient,
                   ),
                 ),
               ],
@@ -289,287 +447,347 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
 
   Widget _buildMessagesTab() {
     if (_isLoadingMessages) {
-      return LoadingWidget(message: 'Loading your messages...');
+      return ModernLoadingWidget(message: 'Loading your messages...');
     }
 
     if (_supportMessages.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.message_outlined,
-              size: 64,
-              color: AppTheme.textSecondary,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'No Support Messages',
-              style: AppTheme.headlineMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'You haven\'t sent any support messages yet.',
-              style: AppTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _tabController.animateTo(1),
-              icon: Icon(Icons.add),
-              label: Text('Send Message'),
-            ),
-          ],
-        ),
+      return ModernEmptyState(
+        icon: Icons.message_outlined,
+        title: 'No Support Messages',
+        message: 'You haven\'t sent any support messages yet.',
+        actionText: 'Send Message',
+        onAction: () => _tabController.animateTo(1),
       );
     }
 
     return RefreshIndicator(
       onRefresh: _loadSupportMessages,
       child: ListView.builder(
-        padding: EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(20),
         itemCount: _supportMessages.length,
         itemBuilder: (context, index) {
-          final message = _supportMessages[index];
-          return _buildMessageCard(message);
+          return SlideInAnimation(
+            delay: Duration(milliseconds: 100 + (index * 50)),
+            child: _buildMessageCard(_supportMessages[index]),
+          );
         },
       ),
     );
   }
 
   Widget _buildWelcomeCard() {
-    return Card(
-      color: AppTheme.primaryGreen.withOpacity(0.1),
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Icon(Icons.eco, size: 48, color: AppTheme.primaryGreen),
-            SizedBox(height: 16),
-            Text(
-              'Welcome to TrashTagger Support',
-              style: AppTheme.headlineMedium.copyWith(
-                color: AppTheme.primaryGreen,
-              ),
-              textAlign: TextAlign.center,
+    return ModernCard(
+      padding: const EdgeInsets.all(24),
+      backgroundColor: AppTheme.primaryEmerald.withOpacity(0.05),
+      border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.3)),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(16),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Find answers to common questions or contact our support team for personalized help.',
-              style: AppTheme.bodyMedium,
-              textAlign: TextAlign.center,
+            child: Icon(Icons.eco_rounded, size: 48, color: Colors.white),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Welcome to TrashTagger Support',
+            style: AppTheme.headlineMedium.copyWith(
+              color: AppTheme.primaryEmerald,
+              fontWeight: FontWeight.w700,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Find answers to common questions or contact our support team for personalized help.',
+            style: AppTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildFAQSection(String title, List<Map<String, String>> faqs) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              //style: AppTheme.labelLarge.copyWith(color: AppTheme.primaryGreen),
-            ),
-            SizedBox(height: 12),
-            ...faqs.map(
-              (faq) => _buildFAQItem(faq['question']!, faq['answer']!),
-            ),
-          ],
-        ),
+  Widget _buildFAQSection(
+    String title,
+    List<Map<String, String>> faqs,
+    LinearGradient gradient,
+  ) {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(_getFAQIcon(title), color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...faqs.map((faq) => _buildFAQItem(faq['question']!, faq['answer']!)),
+        ],
       ),
     );
   }
 
   Widget _buildFAQItem(String question, String answer) {
-    return ExpansionTile(
-      title: Text(question, style: AppTheme.labelMedium),
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Text(
-            answer,
-            style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
-          ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      child: ExpansionTile(
+        title: Text(
+          question,
+          style: AppTheme.titleMedium.copyWith(fontWeight: FontWeight.w600),
         ),
-      ],
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text(
+              answer,
+              style: AppTheme.bodyMedium.copyWith(
+                color: AppTheme.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildCategorySelection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Category',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.category_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-            ),
-            SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: SupportService.categories.entries.map((entry) {
-                return FilterChip(
-                  label: Text(entry.value),
-                  selected: _selectedCategory == entry.key,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _selectedCategory = entry.key);
-                    }
-                  },
-                  selectedColor: AppTheme.primaryGreen.withOpacity(0.2),
-                  checkmarkColor: AppTheme.primaryGreen,
-                );
-              }).toList(),
-            ),
-          ],
-        ),
+              const SizedBox(width: 12),
+              Text(
+                'Category',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: SupportService.categories.entries.map((entry) {
+              final isSelected = _selectedCategory == entry.key;
+              return ModernChip(
+                label: entry.value,
+                selected: isSelected,
+                onTap: () {
+                  setState(() => _selectedCategory = entry.key);
+                },
+                selectedColor: AppTheme.primaryEmerald,
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPrioritySelection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Priority',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.warningGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.priority_high_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: SupportService.priorities.entries.map((entry) {
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: ChoiceChip(
-                      label: Text(entry.value),
-                      selected: _selectedPriority == entry.key,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() => _selectedPriority = entry.key);
-                        }
-                      },
-                      selectedColor: AppTheme.primaryGreen.withOpacity(0.2),
-                    ),
+              const SizedBox(width: 12),
+              Text(
+                'Priority',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: SupportService.priorities.entries.map((entry) {
+              final isSelected = _selectedPriority == entry.key;
+              return Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ModernChip(
+                    label: entry.value,
+                    selected: isSelected,
+                    onTap: () {
+                      setState(() => _selectedPriority = entry.key);
+                    },
+                    selectedColor: _getPriorityColor(entry.key),
+                    width: double.infinity,
                   ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSubjectField() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Subject',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
-              ),
-            ),
-            SizedBox(height: 8),
-            TextFormField(
-              controller: _subjectController,
-              decoration: InputDecoration(
-                hintText: 'Brief description of your issue',
-                border: OutlineInputBorder(
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppTheme.primaryGreen),
+                child: Icon(
+                  Icons.subject_rounded,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Subject is required';
-                }
-                if (value.trim().length < 5) {
-                  return 'Subject must be at least 5 characters';
-                }
-                return null;
-              },
-            ),
-          ],
-        ),
+              const SizedBox(width: 12),
+              Text(
+                'Subject',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ModernTextField(
+            controller: _subjectController,
+            hint: 'Brief description of your issue',
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Subject is required';
+              }
+              if (value.trim().length < 5) {
+                return 'Subject must be at least 5 characters';
+              }
+              return null;
+            },
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildMessageField() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Message',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
-              ),
-            ),
-            SizedBox(height: 8),
-            TextFormField(
-              controller: _messageController,
-              maxLines: 6,
-              decoration: InputDecoration(
-                hintText: 'Please describe your issue in detail...',
-                border: OutlineInputBorder(
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppTheme.primaryGreen),
+                child: Icon(
+                  Icons.message_rounded,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Message is required';
-                }
-                if (value.trim().length < 10) {
-                  return 'Message must be at least 10 characters';
-                }
-                if (value.trim().length > 2000) {
-                  return 'Message must be less than 2000 characters';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: 8),
-            Text(
-              '${_messageController.text.length}/2000 characters',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
+              const SizedBox(width: 12),
+              Text(
+                'Message',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ModernTextField(
+            controller: _messageController,
+            hint: 'Please describe your issue in detail...',
+            maxLines: 6,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Message is required';
+              }
+              if (value.trim().length < 10) {
+                return 'Message must be at least 10 characters';
+              }
+              if (value.trim().length > 2000) {
+                return 'Message must be less than 2000 characters';
+              }
+              return null;
+            },
+            onChanged: (value) {
+              setState(() {}); // Update character count
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${_messageController.text.length}/2000 characters',
+            style: AppTheme.bodySmall.copyWith(color: AppTheme.textTertiary),
+          ),
+        ],
       ),
     );
   }
@@ -578,10 +796,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
     final status = message['status'] ?? 'open';
     final hasResponse = message['adminResponse'] != null;
 
-    return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: ModernCard(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -590,95 +808,111 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
                 Expanded(
                   child: Text(
                     message['subject'] ?? 'No Subject',
-                    style: AppTheme.labelMedium,
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    SupportService.getStatusDisplayName(status),
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: _getStatusColor(status),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                    style: AppTheme.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 8),
-
-            Row(
-              children: [
-                Icon(Icons.category, size: 16, color: AppTheme.textSecondary),
-                SizedBox(width: 4),
-                Text(
-                  SupportService.getCategoryDisplayName(
-                    message['category'] ?? 'general',
-                  ),
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Icon(
-                  Icons.access_time,
-                  size: 16,
-                  color: AppTheme.textSecondary,
-                ),
-                SizedBox(width: 4),
-                Text(
-                  _formatTimestamp(message['createdAt']),
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                  ),
+                ModernStatusBadge(
+                  status: status,
+                  customText: SupportService.getStatusDisplayName(status),
+                  color: _getStatusColor(status),
+                  showPulse: status == 'in_progress',
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-            Text(
-              message['message'] ?? '',
-              style: AppTheme.bodyMedium,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundPrimary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.category_rounded,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        SupportService.getCategoryDisplayName(
+                          message['category'] ?? 'general',
+                        ),
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatTimestamp(message['createdAt']),
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message['message'] ?? '',
+                    style: AppTheme.bodyMedium,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
 
             if (hasResponse) ...[
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Container(
-                padding: EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: AppTheme.primaryGradient.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primaryEmerald.withOpacity(0.3),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.support_agent,
-                          size: 16,
-                          color: AppTheme.primaryGreen,
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(
+                            Icons.support_agent_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
                           'Support Response',
                           style: AppTheme.labelMedium.copyWith(
-                            color: AppTheme.primaryGreen,
-                            fontSize: 12,
+                            color: AppTheme.primaryEmerald,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       message['adminResponse'] ?? '',
                       style: AppTheme.bodyMedium,
@@ -700,9 +934,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
       case 'open':
         return AppTheme.infoBlue;
       case 'in_progress':
-        return AppTheme.warningOrange;
+        return AppTheme.warningAmber;
       case 'resolved':
-        return AppTheme.primaryGreen;
+        return AppTheme.primaryEmerald;
       case 'closed':
         return AppTheme.textSecondary;
       default:
@@ -710,7 +944,33 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
     }
   }
 
-  // In your help_support_screen.dart file, update the _formatTimestamp method:
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'low':
+        return AppTheme.successGreen;
+      case 'medium':
+        return AppTheme.warningAmber;
+      case 'high':
+        return AppTheme.errorRed;
+      default:
+        return AppTheme.warningAmber;
+    }
+  }
+
+  IconData _getFAQIcon(String title) {
+    switch (title) {
+      case 'Getting Started':
+        return Icons.rocket_launch_rounded;
+      case 'Points & Badges':
+        return Icons.emoji_events_rounded;
+      case 'Safety & Verification':
+        return Icons.verified_user_rounded;
+      case 'Technical Issues':
+        return Icons.bug_report_rounded;
+      default:
+        return Icons.help_outline_rounded;
+    }
+  }
 
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null) return 'Unknown';
@@ -721,7 +981,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
       if (timestamp is DateTime) {
         date = timestamp;
       } else if (timestamp is Map && timestamp.containsKey('_seconds')) {
-        // Handle Firestore timestamp format
         final seconds = timestamp['_seconds'];
         final nanoseconds = timestamp['_nanoseconds'] ?? 0;
         date = DateTime.fromMillisecondsSinceEpoch(

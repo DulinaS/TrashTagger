@@ -1,3 +1,4 @@
+// lib/screens/profile/edit_profile_screen.dart - Modern Vibrant Design
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,8 +8,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
 import '../../themes/app_theme.dart';
-import '../../widgets/common/custom_button.dart';
-import '../../widgets/common/loading_widget.dart';
+import '../../widgets/modern/modern_widgets.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/animation_constants.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
 
@@ -17,7 +19,8 @@ class EditProfileScreen extends StatefulWidget {
   _EditProfileScreenState createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -28,10 +31,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   bool _isUploading = false;
 
+  // Animation controllers
+  late AnimationController _slideController;
+  late AnimationController _photoController;
+
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _loadUserData();
+  }
+
+  void _initializeAnimations() {
+    _slideController = AnimationController(
+      duration: AnimationConstants.mediumDuration,
+      vsync: this,
+    );
+    _photoController = AnimationController(
+      duration: AnimationConstants.slowDuration,
+      vsync: this,
+    );
+
+    // Start animations
+    Future.delayed(AnimationConstants.shortDelay, () {
+      if (mounted) {
+        _slideController.forward();
+        _photoController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _photoController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    super.dispose();
   }
 
   void _loadUserData() {
@@ -45,38 +81,122 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
   Future<void> _pickImage() async {
     try {
-      showDialog(
+      showModalBottomSheet(
         context: context,
+        backgroundColor: Colors.transparent,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Choose Photo Source'),
-            content: Column(
+          return Container(
+            margin: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundSecondary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ListTile(
-                  leading: Icon(Icons.camera_alt),
-                  title: Text('Camera'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _getImage(ImageSource.camera);
-                  },
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.textTertiary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                ListTile(
-                  leading: Icon(Icons.photo_library),
-                  title: Text('Gallery'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _getImage(ImageSource.gallery);
-                  },
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Choose Photo Source',
+                        style: AppTheme.titleLarge.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ModernCard(
+                              onTap: () {
+                                Navigator.pop(context);
+                                _getImage(ImageSource.camera);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        gradient: AppTheme.primaryGradient,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.camera_alt_rounded,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Camera',
+                                      style: AppTheme.titleMedium.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ModernCard(
+                              onTap: () {
+                                Navigator.pop(context);
+                                _getImage(ImageSource.gallery);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTheme.accentPurple,
+                                            AppTheme.accentCoral,
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.photo_library_rounded,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Gallery',
+                                      style: AppTheme.titleMedium.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -92,15 +212,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
-        imageQuality: 70, // Reduce quality to save memory
-        maxWidth: 600, // Reduce max dimensions
+        imageQuality: 70,
+        maxWidth: 600,
         maxHeight: 600,
         requestFullMetadata: false,
         preferredCameraDevice: CameraDevice.rear,
       );
 
       if (image != null) {
-        // Dispose previous image file if exists
         if (_imageFile != null && await _imageFile!.exists()) {
           try {
             await _imageFile!.delete();
@@ -157,7 +276,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final updatedUser = UserModel(
         id: currentUser.id,
         name: _nameController.text.trim(),
-        email: currentUser.email, // Email can't be changed here
+        email: currentUser.email,
         photoURL: photoURL,
         totalPoints: currentUser.totalPoints,
         badges: currentUser.badges,
@@ -173,8 +292,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: AppTheme.primaryGreen,
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              const Text('Profile updated successfully!'),
+            ],
+          ),
+          backgroundColor: AppTheme.primaryEmerald,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
 
@@ -197,14 +326,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Password Reset Email Sent'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryEmerald.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.mark_email_read_rounded,
+                  color: AppTheme.primaryEmerald,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Password Reset Email Sent'),
+            ],
+          ),
           content: Text(
             'A password reset email has been sent to $email. Please check your inbox and follow the instructions.',
           ),
           actions: [
-            TextButton(
+            ModernGradientButton(
+              text: 'OK',
               onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
+              gradient: AppTheme.primaryGradient,
             ),
           ],
         ),
@@ -216,144 +365,259 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppTheme.dangerRed),
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: Text('Edit Profile'),
-        elevation: 0,
-        actions: [
-          if (!_isLoading)
-            TextButton(
-              onPressed: _saveProfile,
-              child: Text(
-                'SAVE',
-                style: TextStyle(
-                  color: AppTheme.primaryGreen,
-                  fontWeight: FontWeight.w600,
+      backgroundColor: AppTheme.backgroundPrimary,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [_buildModernAppBar()];
+        },
+        body: _isLoading
+            ? ModernLoadingWidget(message: 'Updating profile...')
+            : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      // Profile Photo Section
+                      SlideInAnimation(
+                        delay: AnimationConstants.microDelay,
+                        child: _buildProfilePhotoSection(),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Name Field
+                      SlideInAnimation(
+                        delay: AnimationConstants.shortDelay,
+                        child: _buildNameField(),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Email Field
+                      SlideInAnimation(
+                        delay: AnimationConstants.mediumDelay,
+                        child: _buildEmailField(),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Change Password Button
+                      SlideInAnimation(
+                        delay: AnimationConstants.longDelay,
+                        child: _buildChangePasswordButton(),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Save Button
+                      ScaleInAnimation(
+                        delay: AnimationConstants.extraLongDelay,
+                        child: _buildSaveButton(),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Additional Info
+                      SlideInAnimation(
+                        delay: const Duration(milliseconds: 600),
+                        child: _buildAdditionalInfo(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
       ),
-      body: _isLoading
-          ? LoadingWidget(message: 'Updating profile...')
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Profile Photo Section
-                    _buildProfilePhotoSection(),
-                    SizedBox(height: 32),
+    );
+  }
 
-                    // Name Field
-                    _buildNameField(),
-                    SizedBox(height: 16),
-
-                    // Email Field (Read-only)
-                    _buildEmailField(),
-                    SizedBox(height: 24),
-
-                    // Change Password Button
-                    _buildChangePasswordButton(),
-                    SizedBox(height: 24),
-
-                    // Save Button
-                    _buildSaveButton(),
-                    SizedBox(height: 16),
-
-                    // Additional Info
-                    _buildAdditionalInfo(),
-                  ],
-                ),
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 80,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.backgroundPrimary,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryEmerald.withOpacity(0.1),
+                AppTheme.accentPurple.withOpacity(0.05),
+              ],
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.edit_rounded,
+                color: Colors.white,
+                size: 20,
               ),
             ),
+            const SizedBox(width: 12),
+            Text(
+              'Edit Profile',
+              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+      ),
+      actions: [
+        if (!_isLoading)
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: ModernGradientButton(
+              text: 'SAVE',
+              onPressed: _saveProfile,
+              gradient: AppTheme.primaryGradient,
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildProfilePhotoSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
-                  backgroundImage: _getProfileImage(),
-                  child: _getProfileImage() == null
-                      ? Icon(
-                          Icons.person,
-                          size: 60,
-                          color: AppTheme.primaryGreen,
-                        )
-                      : null,
+    return ModernCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                if (_isUploading)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
+                child: Icon(
+                  Icons.photo_camera_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Profile Photo',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Stack(
+            children: [
+              ScaleInAnimation(
+                delay: AnimationConstants.shortDelay,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.primaryGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryEmerald.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 58,
+                    backgroundColor: Colors.transparent,
+                    backgroundImage: _getProfileImage(),
+                    child: _getProfileImage() == null
+                        ? Icon(
+                            Icons.person_rounded,
+                            size: 60,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              if (_isUploading)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
                   ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
+                ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: ScaleInAnimation(
+                  delay: AnimationConstants.mediumDelay,
                   child: GestureDetector(
                     onTap: _isUploading ? null : _pickImage,
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen,
+                        gradient: LinearGradient(
+                          colors: [AppTheme.accentCoral, AppTheme.accentAmber],
+                        ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                            color: AppTheme.accentCoral.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Icon(
-                        Icons.camera_alt,
+                        Icons.camera_alt_rounded,
                         color: Colors.white,
                         size: 20,
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Tap the camera icon to change your profile photo',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tap the camera icon to change your profile photo',
+            style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -368,157 +632,173 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildNameField() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Display Name',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
-              ),
-            ),
-            SizedBox(height: 8),
-            TextFormField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                hintText: 'Enter your display name',
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppTheme.primaryGreen),
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Name is required';
-                }
-                if (value.trim().length < 2) {
-                  return 'Name must be at least 2 characters';
-                }
-                if (value.trim().length > 30) {
-                  return 'Name must be less than 30 characters';
-                }
-                return null;
-              },
-            ),
-          ],
-        ),
+              const SizedBox(width: 12),
+              Text(
+                'Display Name',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ModernTextField(
+            controller: _nameController,
+            hint: 'Enter your display name',
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Name is required';
+              }
+              if (value.trim().length < 2) {
+                return 'Name must be at least 2 characters';
+              }
+              if (value.trim().length > 30) {
+                return 'Name must be less than 30 characters';
+              }
+              return null;
+            },
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildEmailField() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Email Address',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
-              ),
-            ),
-            SizedBox(height: 8),
-            TextFormField(
-              controller: _emailController,
-              enabled: false,
-              decoration: InputDecoration(
-                hintText: 'Your email address',
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.textSecondary, AppTheme.borderMedium],
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                filled: true,
-                fillColor: AppTheme.lightGreen.withOpacity(0.1),
+                child: Icon(
+                  Icons.email_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
+              const SizedBox(width: 12),
+              Text(
+                'Email Address',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ModernTextField(
+            controller: _emailController,
+            hint: 'Your email address',
+            readOnly: true,
+            fillColor: AppTheme.backgroundPrimary,
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.infoBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
             ),
-            SizedBox(height: 8),
-            Row(
+            child: Row(
               children: [
                 Icon(
-                  Icons.info_outline,
+                  Icons.info_outline_rounded,
                   size: 16,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.infoBlue,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Email cannot be changed. Contact support if needed.',
                     style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
+                      color: AppTheme.infoBlue,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildChangePasswordButton() {
-    return Card(
+    return ModernCard(
+      onTap: _changePassword,
       child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(20),
+        child: Row(
           children: [
-            Text(
-              'Account Security',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: AppTheme.warningGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.lock_reset_rounded,
+                color: Colors.white,
+                size: 24,
               ),
             ),
-            SizedBox(height: 12),
-            InkWell(
-              onTap: _changePassword,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppTheme.primaryGreen.withOpacity(0.3),
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.lock_reset, color: AppTheme.primaryGreen),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Change Password', style: AppTheme.labelMedium),
-                          SizedBox(height: 4),
-                          Text(
-                            'Send password reset email',
-                            style: AppTheme.bodyMedium.copyWith(
-                              color: AppTheme.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Change Password',
+                    style: AppTheme.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Send password reset email to your inbox',
+                    style: AppTheme.bodyMedium.copyWith(
                       color: AppTheme.textSecondary,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppTheme.textTertiary,
             ),
           ],
         ),
@@ -527,14 +807,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(
+    return ModernGradientButton(
+      text: 'Save Changes',
+      onPressed: _isLoading ? null : _saveProfile,
+      isLoading: _isLoading,
+      icon: _isLoading ? null : Icons.save_rounded,
+      gradient: AppTheme.primaryGradient,
       width: double.infinity,
-      child: CustomButton(
-        text: 'Save Changes',
-        onPressed: _isLoading ? null : _saveProfile,
-        isLoading: _isLoading,
-        icon: Icons.save,
-      ),
     );
   }
 
@@ -544,55 +823,81 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (user == null) return SizedBox.shrink();
 
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Account Information',
-              style: AppTheme.labelMedium.copyWith(
-                color: AppTheme.primaryGreen,
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-            ),
-            SizedBox(height: 16),
-            _buildInfoRow('Member Since', _formatDate(user.joinDate)),
-            SizedBox(height: 8),
-            _buildInfoRow('Total Points', user.totalPoints.toString()),
-            SizedBox(height: 8),
-            _buildInfoRow('Current Level', user.level.toString()),
-            SizedBox(height: 8),
-            _buildInfoRow('Badges Earned', user.badges.length.toString()),
-            SizedBox(height: 8),
-            _buildInfoRow(
-              'Reports Submitted',
-              user.stats.reportsSubmitted.toString(),
-            ),
-            SizedBox(height: 8),
-            _buildInfoRow(
-              'Cleanups Completed',
-              user.stats.challengesCompleted.toString(),
-            ),
-          ],
-        ),
+              const SizedBox(width: 12),
+              Text(
+                'Account Information',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildInfoRow('Member Since', _formatDate(user.joinDate)),
+          _buildInfoRow('Total Points', user.totalPoints.toString()),
+          _buildInfoRow('Current Level', user.level.toString()),
+          _buildInfoRow('Badges Earned', user.badges.length.toString()),
+          _buildInfoRow(
+            'Reports Submitted',
+            user.stats.reportsSubmitted.toString(),
+          ),
+          _buildInfoRow(
+            'Cleanups Completed',
+            user.stats.challengesCompleted.toString(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
-        ),
-        Text(
-          value,
-          style: AppTheme.labelMedium.copyWith(color: AppTheme.textPrimary),
-        ),
-      ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundPrimary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTheme.bodyMedium.copyWith(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: AppTheme.titleMedium.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primaryEmerald,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

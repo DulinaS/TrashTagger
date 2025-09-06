@@ -1,22 +1,17 @@
-// lib/main.dart - Modern Design with Updated Theme System
+// lib/main.dart - Modern Design with Updated Theme System (Updated)
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/reports_provider.dart';
-
 import 'screens/home/main_ navigation_screen.dart';
 import 'services/notification_service.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'themes/app_theme.dart';
-
-final GlobalKey<MainNavigationScreenState> mainNavKey =
-    GlobalKey<MainNavigationScreenState>();
 
 // Global handler for background messages
 @pragma('vm:entry-point')

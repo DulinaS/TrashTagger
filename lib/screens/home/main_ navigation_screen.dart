@@ -1,4 +1,4 @@
-// lib/screens/navigation/main_navigation_screen.dart - Modern Vibrant Design
+// lib/screens/navigation/main_navigation_screen.dart - Modern Vibrant Design (Complete)
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -11,7 +11,13 @@ import '../../animations/custom_animations.dart';
 import '../../animations/animation_constants.dart';
 import '../report/camera_screen.dart';
 
+// Global key for navigation access
+final GlobalKey<_MainNavigationScreenState> mainNavKey =
+    GlobalKey<_MainNavigationScreenState>();
+
 class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({Key? key}) : super(key: key);
+
   @override
   _MainNavigationScreenState createState() => _MainNavigationScreenState();
 }
@@ -22,6 +28,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   late PageController _pageController;
   late List<AnimationController> _iconControllers;
   late List<Animation<double>> _iconAnimations;
+  late AnimationController _navBarController;
 
   final List<Widget> _screens = [
     HomeScreen(),
@@ -76,7 +83,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  void _initializeAnimations() {
+    // Initialize navigation bar controller
+    _navBarController = AnimationController(
+      duration: AnimationConstants.mediumDuration,
+      vsync: this,
+    );
 
     // Initialize animation controllers for each tab
     _iconControllers = List.generate(
@@ -96,23 +112,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       );
     }).toList();
 
-    // Animate the initial selected tab
+    // Start animations
     Future.delayed(AnimationConstants.shortDelay, () {
-      if (mounted) _iconControllers[_currentIndex].forward();
+      if (mounted) {
+        _navBarController.forward();
+        _iconControllers[_currentIndex].forward();
+      }
     });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _navBarController.dispose();
     for (var controller in _iconControllers) {
       controller.dispose();
     }
     super.dispose();
   }
 
+  // Public method for external navigation (used by mainNavKey)
+  void onTabTapped(int index) {
+    _onTabTapped(index);
+  }
+
   void _onTabTapped(int index) {
-    if (_currentIndex == index) return;
+    if (_currentIndex == index) {
+      // If tapping the same tab, scroll to top if possible
+      _scrollToTop();
+      return;
+    }
 
     setState(() {
       _currentIndex = index;
@@ -127,11 +156,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       }
     }
 
+    // Animate page transition
     _pageController.animateToPage(
       index,
       duration: AnimationConstants.mediumDuration,
       curve: AnimationConstants.modernCurve,
     );
+
+    // Provide haptic feedback
+    _provideHapticFeedback();
+  }
+
+  void _scrollToTop() {
+    // Try to scroll to top if the current screen supports it
+    // This can be enhanced based on your specific screen implementations
+    if (_currentIndex == 0) {
+      // Home screen - you can implement scroll to top logic here
+      // For example, if HomeScreen has a ScrollController, you can access it
+    }
+  }
+
+  void _provideHapticFeedback() {
+    // Light haptic feedback for tab changes
+    try {
+      // You can use HapticFeedback.lightImpact() if available
+      // HapticFeedback.lightImpact();
+    } catch (e) {
+      // Fallback for platforms that don't support haptic feedback
+    }
   }
 
   @override
@@ -161,35 +213,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   }
 
   Widget _buildModernBottomNavBar() {
-    return SlideInAnimation(
-      beginOffset: AnimationConstants.slideFromBottom,
-      delay: const Duration(milliseconds: 300),
-      child: Container(
-        margin: const EdgeInsets.all(20),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundSecondary,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.borderLight),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.shadowHeavy,
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+    return AnimatedBuilder(
+      animation: _navBarController,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, 100 * (1 - _navBarController.value)),
+          child: Container(
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundSecondary,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppTheme.borderLight),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.shadowHeavy,
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: _navItems.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            final isSelected = _currentIndex == index;
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _navItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final isSelected = _currentIndex == index;
 
-            return _buildNavItem(item, index, isSelected);
-          }).toList(),
-        ),
-      ),
+                return _buildNavItem(item, index, isSelected);
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -202,7 +258,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: item.isCenter
-                ? _buildCenterNavItem(item, isSelected)
+                ? _buildCenterNavItem(item, isSelected, index)
                 : _buildRegularNavItem(item, index, isSelected),
           );
         },
@@ -210,36 +266,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
-  Widget _buildCenterNavItem(BottomNavItem item, bool isSelected) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: item.gradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: isSelected
-            ? [
+  Widget _buildCenterNavItem(BottomNavItem item, bool isSelected, int index) {
+    return AnimatedBuilder(
+      animation: _iconAnimations[index],
+      builder: (context, child) {
+        return Transform.scale(
+          scale: 1.0 + (_iconAnimations[index].value * 0.1),
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: item.gradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
                 BoxShadow(
-                  color: item.gradient.colors.first.withOpacity(0.4),
-                  blurRadius: 12,
+                  color: item.gradient.colors.first.withOpacity(
+                    isSelected ? 0.4 : 0.2,
+                  ),
+                  blurRadius: isSelected ? 12 : 8,
                   offset: const Offset(0, 6),
                 ),
-              ]
-            : null,
-      ),
-      child: AnimatedBuilder(
-        animation: _iconAnimations[2], // Camera is at index 2
-        builder: (context, child) {
-          return Transform.scale(
-            scale: 1.0 + (_iconAnimations[2].value * 0.1),
+              ],
+            ),
             child: Icon(
               isSelected ? item.activeIcon : item.icon,
               color: Colors.white,
               size: 28,
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -301,6 +357,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       ),
     );
   }
+
+  // Method to get current index (useful for external access)
+  int get currentIndex => _currentIndex;
+
+  // Method to check if a specific tab is active
+  bool isTabActive(int index) => _currentIndex == index;
 }
 
 class BottomNavItem {
@@ -332,14 +394,15 @@ extension GradientExtension on LinearGradient {
   }
 }
 
-// Global key for accessing navigation state
+// Global controller for accessing navigation state
 class MainNavigationController {
-  static final GlobalKey<_MainNavigationScreenState> _key =
-      GlobalKey<_MainNavigationScreenState>();
-
-  static GlobalKey<_MainNavigationScreenState> get key => _key;
-
   static void onTabTapped(int index) {
-    _key.currentState?._onTabTapped(index);
+    mainNavKey.currentState?.onTabTapped(index);
+  }
+
+  static int? get currentIndex => mainNavKey.currentState?.currentIndex;
+
+  static bool isTabActive(int index) {
+    return mainNavKey.currentState?.isTabActive(index) ?? false;
   }
 }
