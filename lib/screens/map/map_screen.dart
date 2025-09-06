@@ -1,4 +1,4 @@
-// lib/screens/map/map_screen.dart - Modern Vibrant Design
+// lib/screens/map/map_screen.dart - Fixed Overflow Issues
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
@@ -703,7 +703,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -724,7 +726,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -773,7 +774,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
                 const SizedBox(height: 16),
 
-                // Location and Details
+                // Location and Details - FIXED OVERFLOW HERE
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -804,43 +805,65 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          if (distance != null) ...[
-                            Icon(
-                              Icons.near_me_rounded,
-                              size: 16,
-                              color: AppTheme.textTertiary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              Helpers.formatDistance(distance),
-                              style: AppTheme.bodySmall,
-                            ),
-                            const SizedBox(width: 16),
-                          ],
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 16,
-                            color: AppTheme.textTertiary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            Helpers.formatDateTime(report.timestamp),
-                            style: AppTheme.bodySmall,
-                          ),
-                          const SizedBox(width: 16),
-                          Icon(
-                            Icons.timer_outlined,
-                            size: 16,
-                            color: AppTheme.textTertiary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            report.estimatedEffort,
-                            style: AppTheme.bodySmall,
-                          ),
-                        ],
+                      // FIXED ROW - Made responsive with Flexible widgets
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          // For very small screens, stack vertically
+                          if (constraints.maxWidth < 300) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (distance != null)
+                                  _buildInfoItem(
+                                    icon: Icons.near_me_rounded,
+                                    text: Helpers.formatDistance(distance),
+                                  ),
+                                const SizedBox(height: 4),
+                                _buildInfoItem(
+                                  icon: Icons.access_time_rounded,
+                                  text: Helpers.formatDateTime(
+                                    report.timestamp,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                _buildInfoItem(
+                                  icon: Icons.timer_outlined,
+                                  text: report.estimatedEffort,
+                                ),
+                              ],
+                            );
+                          }
+
+                          // For larger screens, use flexible row
+                          return Row(
+                            children: [
+                              if (distance != null) ...[
+                                Flexible(
+                                  child: _buildInfoItem(
+                                    icon: Icons.near_me_rounded,
+                                    text: Helpers.formatDistance(distance),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Flexible(
+                                child: _buildInfoItem(
+                                  icon: Icons.access_time_rounded,
+                                  text: Helpers.formatDateTime(
+                                    report.timestamp,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: _buildInfoItem(
+                                  icon: Icons.timer_outlined,
+                                  text: report.estimatedEffort,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -896,6 +919,25 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
+    );
+  }
+
+  // Helper widget for info items
+  Widget _buildInfoItem({required IconData icon, required String text}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppTheme.textTertiary),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            style: AppTheme.bodySmall,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+      ],
     );
   }
 

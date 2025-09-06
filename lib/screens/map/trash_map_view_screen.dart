@@ -1,4 +1,4 @@
-// lib/screens/map/trash_map_view_screen.dart - Modern Vibrant Design
+// lib/screens/map/trash_map_view_screen.dart - Fixed positioning issue
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -392,19 +392,11 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
                 // Modern App Bar
                 _buildModernAppBar(),
 
-                // Filter Section
-                SlideInAnimation(
-                  beginOffset: AnimationConstants.slideFromTop,
-                  delay: AnimationConstants.shortDelay,
-                  child: _buildFilterSection(),
-                ),
+                // Filter Section - Fixed positioning
+                _buildFilterSection(),
 
                 // Stats Card
-                SlideInAnimation(
-                  beginOffset: const Offset(-0.3, 0),
-                  delay: AnimationConstants.mediumDelay,
-                  child: _buildStatsCard(),
-                ),
+                _buildStatsCard(),
 
                 // Modern FAB Controls
                 _buildFABControls(),
@@ -547,7 +539,9 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
     ];
 
     return Positioned(
-      top: 100,
+      top:
+          MediaQuery.of(context).padding.top +
+          80, // Fixed positioning below app bar
       left: 0,
       right: 0,
       child: Container(
@@ -561,17 +555,14 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
               final index = entry.key;
               final option = entry.value;
 
-              return ScaleInAnimation(
-                delay: Duration(milliseconds: 100 + (index * 50)),
-                child: Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  child: _buildModernFilterChip(
-                    option['value'] as String,
-                    option['label'] as String,
-                    option['icon'] as IconData,
-                    option['count'] as int,
-                    option['gradient'] as LinearGradient,
-                  ),
+              return Container(
+                margin: const EdgeInsets.only(right: 12),
+                child: _buildModernFilterChip(
+                  option['value'] as String,
+                  option['label'] as String,
+                  option['icon'] as IconData,
+                  option['count'] as int,
+                  option['gradient'] as LinearGradient,
                 ),
               );
             }).toList(),
@@ -667,47 +658,53 @@ class _TrashMapViewScreenState extends State<TrashMapViewScreen>
   Widget _buildStatsCard() {
     final filteredCount = _filteredReports.length;
     return Positioned(
-      top: 200,
+      top:
+          MediaQuery.of(context).padding.top +
+          180, // Adjusted position below filter
       left: 20,
-      child: ModernCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enableGlassmorphism: true,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.location_on_rounded,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$filteredCount',
-                  style: AppTheme.titleMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryEmerald,
-                  ),
+      child: SlideInAnimation(
+        beginOffset: const Offset(-0.3, 0),
+        delay: AnimationConstants.mediumDelay,
+        child: ModernCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enableGlassmorphism: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Text(
-                  'Report${filteredCount != 1 ? 's' : ''}',
-                  style: AppTheme.bodySmall.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  size: 16,
+                  color: Colors.white,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$filteredCount',
+                    style: AppTheme.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryEmerald,
+                    ),
+                  ),
+                  Text(
+                    'Report${filteredCount != 1 ? 's' : ''}',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
