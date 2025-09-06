@@ -1,4 +1,4 @@
-// lib/screens/challenges/cleanup_proof_screen.dart
+// lib/screens/challenges/cleanup_proof_screen.dart - Modern Vibrant Design
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -10,7 +10,10 @@ import '../../models/trash_report_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/storage_service.dart';
 import '../../themes/app_theme.dart';
-import '../../widgets/common/custom_button.dart';
+import '../../widgets/modern/modern_widgets.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/animation_constants.dart';
+import '../../animations/page_transitions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CleanupProofScreen extends StatefulWidget {
@@ -23,8 +26,9 @@ class CleanupProofScreen extends StatefulWidget {
   _CleanupProofScreenState createState() => _CleanupProofScreenState();
 }
 
-class _CleanupProofScreenState extends State<CleanupProofScreen> {
-  // Your existing variables...
+class _CleanupProofScreenState extends State<CleanupProofScreen>
+    with TickerProviderStateMixin {
+  // Existing variables
   File? _proofImage;
   bool _isSubmitting = false;
   final StorageService _storageService = StorageService();
@@ -36,16 +40,44 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
   double? _distanceFromReported;
   bool _isLoadingLocation = false;
   LocationPermission? _currentPermission;
-  String _locationStatus =
-      'not_checked'; // not_checked, checking, success, failed, denied
+  String _locationStatus = 'not_checked';
+
+  // Animation controllers
+  late AnimationController _slideController;
+  late AnimationController _bounceController;
 
   @override
   void initState() {
     super.initState();
+    _slideController = AnimationController(
+      duration: AnimationConstants.mediumDuration,
+      vsync: this,
+    );
+    _bounceController = AnimationController(
+      duration: AnimationConstants.slowDuration,
+      vsync: this,
+    );
+
     _checkInitialLocationStatus();
+
+    // Start animations
+    Future.delayed(AnimationConstants.shortDelay, () {
+      if (mounted) {
+        _slideController.forward();
+        _bounceController.forward();
+      }
+    });
   }
 
-  // Check location status when screen loads (no auto-detection, just status check)
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _bounceController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  // [Keep all existing location methods unchanged]
   Future<void> _checkInitialLocationStatus() async {
     try {
       _currentPermission = await Geolocator.checkPermission();
@@ -66,7 +98,6 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     }
   }
 
-  // Main location verification method - much more robust
   Future<void> _verifyCurrentLocation() async {
     if (_isLoadingLocation) return;
 
@@ -76,19 +107,14 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     });
 
     try {
-      // Step 1: Check and request permissions properly
       await _ensureLocationPermissions();
-
-      // Step 2: Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw LocationServiceDisabledException();
       }
 
-      // Step 3: Get location with progressive fallback
       _currentGPSPosition = await _getLocationWithFallback();
 
-      // Step 4: Calculate distance and update UI
       final challengeLocation = widget.challenge.location;
       _distanceFromReported = Geolocator.distanceBetween(
         _currentGPSPosition!.latitude,
@@ -120,12 +146,10 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     }
   }
 
-  // Robust permission handling
   Future<void> _ensureLocationPermissions() async {
     _currentPermission = await Geolocator.checkPermission();
 
     if (_currentPermission == LocationPermission.denied) {
-      // First time asking
       _currentPermission = await Geolocator.requestPermission();
     }
 
@@ -135,9 +159,7 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     }
   }
 
-  // Progressive location detection with fallbacks
   Future<Position> _getLocationWithFallback() async {
-    // Try high accuracy first (5 seconds)
     try {
       return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -147,7 +169,6 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
       print('High accuracy timeout, trying medium...');
     }
 
-    // Fallback to medium accuracy (8 seconds)
     try {
       return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
@@ -157,7 +178,6 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
       print('Medium accuracy timeout, trying low...');
     }
 
-    // Final fallback to low accuracy (12 seconds)
     try {
       return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
@@ -171,54 +191,360 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     }
   }
 
-  // Enhanced UI for location status
-  Widget _buildLocationVerificationSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundPrimary,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [_buildModernAppBar()];
+        },
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
               children: [
-                Icon(Icons.location_on, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Location Verification', style: AppTheme.headlineMedium),
+                // Resubmission Notice
+                if (widget.challenge.status == 'disputed')
+                  SlideInAnimation(
+                    delay: AnimationConstants.microDelay,
+                    child: _buildResubmissionNotice(),
+                  ),
+
+                // Original Photo Section
+                SlideInAnimation(
+                  delay: AnimationConstants.shortDelay,
+                  child: _buildOriginalPhotoSection(),
+                ),
+                const SizedBox(height: 24),
+
+                // Location Verification Section
+                SlideInAnimation(
+                  delay: AnimationConstants.mediumDelay,
+                  child: _buildLocationVerificationSection(),
+                ),
+                const SizedBox(height: 24),
+
+                // Proof Photo Section
+                SlideInAnimation(
+                  delay: AnimationConstants.longDelay,
+                  child: _buildProofPhotoSection(),
+                ),
+                const SizedBox(height: 24),
+
+                // Notes Section
+                SlideInAnimation(
+                  delay: AnimationConstants.extraLongDelay,
+                  child: _buildNotesSection(),
+                ),
+                const SizedBox(height: 24),
+
+                // Safety Reminder
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 600),
+                  child: _buildSafetyReminder(),
+                ),
+                const SizedBox(height: 100),
               ],
             ),
-            const SizedBox(height: 12),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SlideInAnimation(
+        beginOffset: AnimationConstants.slideFromBottom,
+        delay: const Duration(milliseconds: 700),
+        child: _buildSubmitButton(),
+      ),
+    );
+  }
 
-            // Challenge location display
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 140,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.backgroundPrimary,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryEmerald.withOpacity(0.1),
+                AppTheme.accentPurple.withOpacity(0.05),
+              ],
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.lightGreen.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(8),
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Cleanup Location:', style: AppTheme.labelMedium),
-                  const SizedBox(height: 4),
-                  Text(widget.challenge.address, style: AppTheme.bodyMedium),
-                ],
+              child: const Icon(
+                Icons.camera_alt_rounded,
+                color: Colors.white,
+                size: 20,
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Location status display
-            _buildLocationStatusDisplay(),
-            const SizedBox(height: 16),
-
-            // Action button
-            _buildLocationActionButton(),
-
-            // Additional info based on status
-            if (_locationStatus == 'denied') _buildPermissionInfo(),
-            if (_locationStatus == 'service_disabled') _buildServiceInfo(),
-            if (_locationStatus == 'timeout') _buildTimeoutInfo(),
+            const SizedBox(width: 12),
+            Text(
+              'Cleanup Proof',
+              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+            ),
           ],
         ),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+      ),
+    );
+  }
+
+  Widget _buildResubmissionNotice() {
+    return ModernCard(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      backgroundColor: AppTheme.warningAmber.withOpacity(0.1),
+      border: Border.all(color: AppTheme.warningAmber.withOpacity(0.3)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              PulseAnimation(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warningAmber,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Cleanup Proof Disputed',
+                style: AppTheme.titleMedium.copyWith(
+                  color: AppTheme.warningAmber,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Your previous proof photo was disputed. Please submit a new photo that clearly shows:',
+            style: AppTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          if (widget.challenge.proofVerification?.reasons?.isNotEmpty ?? false)
+            ...widget.challenge.proofVerification!.reasons.map(
+              (reason) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.fiber_manual_record,
+                      size: 8,
+                      color: AppTheme.warningAmber,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        reason,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOriginalPhotoSection() {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.photo_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Original Trash Report',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: CachedNetworkImage(
+              imageUrl: widget.challenge.imageURL,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => ShimmerAnimation(
+                child: Container(
+                  height: 200,
+                  color: AppTheme.backgroundPrimary,
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: AppTheme.errorRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: AppTheme.errorRed,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Failed to load image',
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.errorRed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundPrimary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.location_on_rounded,
+                  size: 16,
+                  color: AppTheme.primaryEmerald,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.challenge.address,
+                    style: AppTheme.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationVerificationSection() {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primaryTeal, AppTheme.infoBlue],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.my_location_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Location Verification',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Challenge location display
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryEmerald.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primaryEmerald.withOpacity(0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cleanup Location:',
+                  style: AppTheme.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(widget.challenge.address, style: AppTheme.bodyMedium),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Location status display
+          _buildLocationStatusDisplay(),
+          const SizedBox(height: 16),
+
+          // Action button
+          _buildLocationActionButton(),
+
+          // Additional info based on status
+          if (_locationStatus == 'denied') _buildPermissionInfo(),
+          if (_locationStatus == 'service_disabled') _buildServiceInfo(),
+          if (_locationStatus == 'timeout') _buildTimeoutInfo(),
+        ],
       ),
     );
   }
@@ -227,48 +553,86 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     switch (_locationStatus) {
       case 'checking':
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppTheme.infoBlue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
           ),
           child: Row(
             children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              PulseAnimation(
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
-              Text('Getting your location...', style: AppTheme.bodyMedium),
+              Text(
+                'Getting your location...',
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.infoBlue,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         );
 
       case 'success':
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color:
                 (_locationVerified
-                        ? AppTheme.primaryGreen
-                        : AppTheme.warningOrange)
+                        ? AppTheme.successGreen
+                        : AppTheme.warningAmber)
                     .withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color:
+                  (_locationVerified
+                          ? AppTheme.successGreen
+                          : AppTheme.warningAmber)
+                      .withOpacity(0.3),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(
-                    _locationVerified
-                        ? Icons.check_circle
-                        : Icons.warning_amber,
-                    color: _locationVerified
-                        ? AppTheme.primaryGreen
-                        : AppTheme.warningOrange,
-                    size: 20,
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _locationVerified
+                          ? AppTheme.successGreen
+                          : AppTheme.warningAmber,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _locationVerified
+                          ? Icons.check_circle_rounded
+                          : Icons.warning_amber_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -277,13 +641,14 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
                         : 'Location Detected ⚠️',
                     style: AppTheme.labelMedium.copyWith(
                       color: _locationVerified
-                          ? AppTheme.primaryGreen
-                          : AppTheme.warningOrange,
+                          ? AppTheme.successGreen
+                          : AppTheme.warningAmber,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 'You are ${_distanceFromReported?.toInt() ?? '?'}m from the cleanup site',
                 style: AppTheme.bodyMedium,
@@ -291,11 +656,10 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
               if (!_locationVerified &&
                   _distanceFromReported != null &&
                   _distanceFromReported! > 100) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
                   'Consider moving closer to the exact location for better verification',
-                  style: AppTheme.bodyMedium.copyWith(
-                    fontSize: 12,
+                  style: AppTheme.bodySmall.copyWith(
                     color: AppTheme.textSecondary,
                   ),
                 ),
@@ -306,25 +670,24 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
 
       case 'denied':
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.dangerRed.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: AppTheme.errorRed.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.errorRed.withOpacity(0.3)),
           ),
           child: Row(
             children: [
               Icon(
-                Icons.location_disabled,
-                color: AppTheme.dangerRed,
+                Icons.location_disabled_rounded,
+                color: AppTheme.errorRed,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Location permission denied',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.dangerRed,
-                  ),
+                  style: AppTheme.bodyMedium.copyWith(color: AppTheme.errorRed),
                 ),
               ),
             ],
@@ -333,24 +696,25 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
 
       case 'service_disabled':
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.warningOrange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: AppTheme.warningAmber.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.warningAmber.withOpacity(0.3)),
           ),
           child: Row(
             children: [
               Icon(
-                Icons.location_disabled,
-                color: AppTheme.warningOrange,
+                Icons.location_disabled_rounded,
+                color: AppTheme.warningAmber,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Location services are disabled',
                   style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.warningOrange,
+                    color: AppTheme.warningAmber,
                   ),
                 ),
               ),
@@ -360,20 +724,25 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
 
       case 'timeout':
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.warningOrange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: AppTheme.warningAmber.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.warningAmber.withOpacity(0.3)),
           ),
           child: Row(
             children: [
-              Icon(Icons.schedule, color: AppTheme.warningOrange, size: 20),
-              const SizedBox(width: 8),
+              Icon(
+                Icons.schedule_rounded,
+                color: AppTheme.warningAmber,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'GPS timeout - unable to get precise location',
                   style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.warningOrange,
+                    color: AppTheme.warningAmber,
                   ),
                 ),
               ),
@@ -383,42 +752,42 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
 
       case 'failed':
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.dangerRed.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: AppTheme.errorRed.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.errorRed.withOpacity(0.3)),
           ),
           child: Row(
             children: [
-              Icon(Icons.error, color: AppTheme.dangerRed, size: 20),
-              const SizedBox(width: 8),
+              Icon(Icons.error_rounded, color: AppTheme.errorRed, size: 20),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Location verification failed',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.dangerRed,
-                  ),
+                  style: AppTheme.bodyMedium.copyWith(color: AppTheme.errorRed),
                 ),
               ),
             ],
           ),
         );
 
-      default: // 'not_checked' or 'ready'
+      default:
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppTheme.textSecondary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.textSecondary.withOpacity(0.3)),
           ),
           child: Row(
             children: [
               Icon(
-                Icons.location_searching,
+                Icons.location_searching_rounded,
                 color: AppTheme.textSecondary,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Text(
                 'Tap to verify your location',
                 style: AppTheme.bodyMedium.copyWith(
@@ -434,111 +803,520 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
   Widget _buildLocationActionButton() {
     String buttonText;
     VoidCallback? onPressed;
-    Color? backgroundColor;
+    LinearGradient? gradient;
+    IconData icon;
 
     switch (_locationStatus) {
       case 'checking':
         buttonText = 'Getting Location...';
         onPressed = null;
+        gradient = LinearGradient(
+          colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+        );
+        icon = Icons.my_location_rounded;
         break;
       case 'success':
         buttonText = 'Verify Again';
         onPressed = _verifyCurrentLocation;
-        backgroundColor = AppTheme.infoBlue;
+        gradient = LinearGradient(
+          colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+        );
+        icon = Icons.refresh_rounded;
         break;
       case 'denied':
         buttonText = 'Grant Permission';
         onPressed = _openAppSettings;
-        backgroundColor = AppTheme.warningOrange;
+        gradient = AppTheme.warningGradient;
+        icon = Icons.settings_rounded;
         break;
       case 'service_disabled':
         buttonText = 'Enable Location Services';
         onPressed = _openLocationSettings;
-        backgroundColor = AppTheme.warningOrange;
+        gradient = AppTheme.warningGradient;
+        icon = Icons.location_on_rounded;
         break;
       default:
         buttonText = 'Verify My Location';
         onPressed = _verifyCurrentLocation;
-        backgroundColor = AppTheme.primaryGreen;
+        gradient = AppTheme.primaryGradient;
+        icon = Icons.my_location_rounded;
     }
 
-    return SizedBox(
+    return ModernGradientButton(
+      text: buttonText,
+      onPressed: onPressed,
+      gradient: gradient,
+      icon: _isLoadingLocation ? null : icon,
+      isLoading: _isLoadingLocation,
       width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: _isLoadingLocation
-            ? SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Icon(_getLocationButtonIcon()),
-        label: Text(buttonText),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
     );
   }
 
-  IconData _getLocationButtonIcon() {
-    switch (_locationStatus) {
-      case 'success':
-        return Icons.refresh;
-      case 'denied':
-        return Icons.settings;
-      case 'service_disabled':
-        return Icons.location_on;
-      default:
-        return Icons.my_location;
-    }
-  }
-
-  // Helper info widgets
   Widget _buildPermissionInfo() {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 12),
       child: Text(
         'Location permission is needed to verify you are at the cleanup site. You can still submit without it.',
-        style: AppTheme.bodyMedium.copyWith(
-          fontSize: 12,
-          color: AppTheme.textSecondary,
-        ),
+        style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
       ),
     );
   }
 
   Widget _buildServiceInfo() {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 12),
       child: Text(
         'Please enable location services in your device settings to verify your location.',
-        style: AppTheme.bodyMedium.copyWith(
-          fontSize: 12,
-          color: AppTheme.textSecondary,
-        ),
+        style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
       ),
     );
   }
 
   Widget _buildTimeoutInfo() {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 12),
       child: Text(
         'GPS is taking too long. Try moving to an area with clear sky view, or submit without location verification.',
-        style: AppTheme.bodyMedium.copyWith(
-          fontSize: 12,
-          color: AppTheme.textSecondary,
+        style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+      ),
+    );
+  }
+
+  Widget _buildProofPhotoSection() {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.camera_alt_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Cleanup Proof Photo',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          if (_proofImage != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.file(
+                _proofImage!,
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ModernGradientButton(
+                    text: 'Retake Photo',
+                    onPressed: _takeNewPhoto,
+                    icon: Icons.camera_alt_rounded,
+                    isOutlined: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ModernGradientButton(
+                    text: 'Remove',
+                    onPressed: _removePhoto,
+                    icon: Icons.delete_rounded,
+                    gradient: AppTheme.errorGradient,
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryEmerald.withOpacity(0.1),
+                    AppTheme.primaryTeal.withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.primaryEmerald.withOpacity(0.3),
+                  width: 2,
+                  style: BorderStyle.values[1], // dashed effect
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ScaleInAnimation(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        size: 32,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Take a photo of the cleaned area',
+                    style: AppTheme.titleMedium.copyWith(
+                      color: AppTheme.primaryEmerald,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Show the same location after cleanup',
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ModernGradientButton(
+                    text: 'Take Photo',
+                    onPressed: _takePhoto,
+                    icon: Icons.camera_alt_rounded,
+                    gradient: AppTheme.primaryGradient,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ModernGradientButton(
+                    text: 'From Gallery',
+                    onPressed: _pickFromGallery,
+                    icon: Icons.photo_library_rounded,
+                    isOutlined: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesSection() {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.notes_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Cleanup Notes (Optional)',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ModernTextField(
+            controller: _notesController,
+            hint:
+                'Add any notes about the cleanup process, tools used, or challenges faced...',
+            maxLines: 4,
+            enableFloatingLabel: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSafetyReminder() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.infoBlue.withOpacity(0.1),
+            AppTheme.primaryTeal.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.infoBlue,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.info_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Cleanup Guidelines',
+                style: AppTheme.titleMedium.copyWith(
+                  color: AppTheme.infoBlue,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGuidelineItem(
+                'Take the photo from the same angle as the original report',
+              ),
+              _buildGuidelineItem('Ensure all visible trash has been removed'),
+              _buildGuidelineItem(
+                'Dispose of waste properly in appropriate bins',
+              ),
+              _buildGuidelineItem(
+                'If hazardous materials were involved, confirm safe disposal',
+              ),
+              _buildGuidelineItem(
+                'Your proof photo will be reviewed by the community',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuidelineItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppTheme.infoBlue,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: AppTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowMedium,
+            blurRadius: 20,
+            offset: const Offset(0, -8),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: ModernGradientButton(
+          text: _isSubmitting
+              ? 'Submitting...'
+              : (widget.challenge.status == 'disputed'
+                    ? 'Resubmit Cleanup Proof'
+                    : 'Submit Cleanup Proof'),
+          icon: _isSubmitting ? null : Icons.check_circle_rounded,
+          isLoading: _isSubmitting,
+          onPressed: _proofImage != null ? _submitProof : null,
+          gradient: widget.challenge.status == 'disputed'
+              ? AppTheme.warningGradient
+              : AppTheme.primaryGradient,
+          width: double.infinity,
         ),
       ),
     );
   }
 
-  // Helper methods for better UX
+  // [Keep all existing photo and submission methods unchanged]
+  Future<void> _takePhoto() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (image != null) {
+        setState(() {
+          _proofImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      _showError('Failed to take photo: $e');
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (image != null) {
+        setState(() {
+          _proofImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      _showError('Failed to pick image: $e');
+    }
+  }
+
+  void _takeNewPhoto() {
+    _takePhoto();
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _proofImage = null;
+    });
+  }
+
+  Future<void> _submitProof() async {
+    if (_proofImage == null) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final proofURL = await StorageService.uploadCleanupProofImage(
+        _proofImage!,
+        widget.challenge.id,
+        authProvider.user!.uid,
+      );
+
+      final data = {
+        'proofURL': proofURL,
+        'proofTimestamp': FieldValue.serverTimestamp(),
+        'cleanupNotes': _notesController.text.trim(),
+        'status': 'processing',
+        'proofMetadata': {
+          'submissionLocation': _currentGPSPosition != null
+              ? GeoPoint(
+                  _currentGPSPosition!.latitude,
+                  _currentGPSPosition!.longitude,
+                )
+              : null,
+          'locationVerified': _locationVerified,
+          'distanceFromReported': _distanceFromReported,
+          'deviceInfo': {
+            'platform': Platform.operatingSystem,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          },
+          'verificationMethod': 'enhanced_maps',
+        },
+      };
+
+      if (widget.challenge.status == 'disputed') {
+        data['previousProofURL'] = widget.challenge.proofURL!;
+        data['resubmissionAttempt'] = true;
+        data['disputeResolved'] = false;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('trashReports')
+          .doc(widget.challenge.id)
+          .update(data);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.challenge.status == 'disputed'
+                        ? 'Proof resubmitted successfully! Under review.'
+                        : 'Cleanup proof submitted! Under review.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.primaryEmerald,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      _showError('Failed to submit proof: $e');
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  // [Keep all existing helper methods unchanged]
   void _showLocationResult() {
     final message = _locationVerified
         ? '✅ Perfect! You are ${_distanceFromReported!.toInt()}m from the cleanup site'
@@ -548,9 +1326,11 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: _locationVerified
-            ? AppTheme.primaryGreen
-            : AppTheme.warningOrange,
+            ? AppTheme.primaryEmerald
+            : AppTheme.warningAmber,
         duration: Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -633,9 +1413,17 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
   void _showGenericErrorDialog(String error) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Location error: $error'),
-        backgroundColor: AppTheme.dangerRed,
+        content: Row(
+          children: [
+            Icon(Icons.error_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text('Location error: $error')),
+          ],
+        ),
+        backgroundColor: AppTheme.errorRed,
         duration: Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -648,1501 +1436,30 @@ class _CleanupProofScreenState extends State<CleanupProofScreen> {
     Geolocator.openLocationSettings();
   }
 
-  // Don't forget to add this to your build method:
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            if (widget.challenge.status == 'disputed')
-              _buildResubmissionNotice(),
-            _buildOriginalPhotoSection(),
-            const SizedBox(height: 24),
-
-            // ADD THIS LINE to show location verification:
-            _buildLocationVerificationSection(),
-            const SizedBox(height: 24),
-
-            _buildProofPhotoSection(),
-            const SizedBox(height: 24),
-            _buildNotesSection(),
-            const SizedBox(height: 24),
-            _buildSafetyReminder(),
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildSubmitButton(),
-    );
-  }
-
-  Widget _buildResubmissionNotice() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.warningYellow.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.warningYellow),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.warning_amber, color: AppTheme.warningYellow),
-              const SizedBox(width: 8),
-              Text(
-                'Cleanup Proof Disputed',
-                style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.warningYellow,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Your previous proof photo was disputed. Please submit a new photo that clearly shows:',
-            style: AppTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          if (widget.challenge.proofVerification?.reasons?.isNotEmpty ??
-              false) ...[
-            ...widget.challenge.proofVerification!.reasons.map(
-              (reason) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• ', style: AppTheme.bodyMedium),
-                    Expanded(
-                      child: Text(
-                        reason,
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOriginalPhotoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Original Trash Report', style: AppTheme.headlineMedium),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: widget.challenge.imageURL,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 200,
-                  color: AppTheme.lightGreen.withOpacity(0.3),
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 200,
-                  color: AppTheme.lightGreen.withOpacity(0.3),
-                  child: const Center(child: Icon(Icons.error)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Location: ${widget.challenge.address}',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProofPhotoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cleanup Proof Photo', style: AppTheme.headlineMedium),
-            const SizedBox(height: 12),
-
-            if (_proofImage != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  _proofImage!,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _takeNewPhoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Retake Photo'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _removePhoto,
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Remove'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.dangerRed,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: AppTheme.lightGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.primaryGreen.withOpacity(0.3),
-                    style: BorderStyle.solid,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.camera_alt_outlined,
-                      size: 48,
-                      color: AppTheme.primaryGreen,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Take a photo of the cleaned area',
-                      style: AppTheme.bodyLarge.copyWith(
-                        color: AppTheme.primaryGreen,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Show the same location after cleanup',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _takePhoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Take Photo'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickFromGallery,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('From Gallery'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotesSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cleanup Notes (Optional)', style: AppTheme.headlineMedium),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _notesController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText:
-                    'Add any notes about the cleanup process, tools used, or challenges faced...',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSafetyReminder() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.infoBlue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info, color: AppTheme.infoBlue),
-              const SizedBox(width: 8),
-              Text(
-                'Cleanup Guidelines',
-                style: AppTheme.labelMedium.copyWith(color: AppTheme.infoBlue),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '• Take the photo from the same angle as the original report\n'
-            '• Ensure all visible trash has been removed\n'
-            '• Dispose of waste properly in appropriate bins\n'
-            '• If hazardous materials were involved, confirm safe disposal\n'
-            '• Your proof photo will be reviewed by the community',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: CustomButton(
-          text: _isSubmitting
-              ? 'Submitting...'
-              : (widget.challenge.status == 'disputed'
-                    ? 'Resubmit Cleanup Proof'
-                    : 'Submit Cleanup Proof'),
-          icon: Icons.check_circle,
-          isLoading: _isSubmitting,
-          onPressed: _proofImage != null ? _submitProof : null,
-          backgroundColor: widget.challenge.status == 'disputed'
-              ? AppTheme.warningYellow
-              : AppTheme.primaryGreen,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-
-      if (image != null) {
-        setState(() {
-          _proofImage = File(image.path);
-        });
-      }
-    } catch (e) {
-      _showError('Failed to take photo: $e');
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-
-      if (image != null) {
-        setState(() {
-          _proofImage = File(image.path);
-        });
-      }
-    } catch (e) {
-      _showError('Failed to pick image: $e');
-    }
-  }
-
-  void _takeNewPhoto() {
-    _takePhoto();
-  }
-
-  void _removePhoto() {
-    setState(() {
-      _proofImage = null;
-    });
-  }
-
-  Future<void> _submitProof() async {
-    if (_proofImage == null) return;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final proofURL = await StorageService.uploadCleanupProofImage(
-        _proofImage!,
-        widget.challenge.id,
-        authProvider.user!.uid,
-      );
-
-      // Enhanced data with location verification
-      final data = {
-        'proofURL': proofURL,
-        'proofTimestamp': FieldValue.serverTimestamp(),
-        'cleanupNotes': _notesController.text.trim(),
-        'status': 'processing',
-
-        // NEW: Enhanced verification metadata
-        'proofMetadata': {
-          'submissionLocation': _currentGPSPosition != null
-              ? GeoPoint(
-                  _currentGPSPosition!.latitude,
-                  _currentGPSPosition!.longitude,
-                )
-              : null,
-          'locationVerified': _locationVerified,
-          'distanceFromReported': _distanceFromReported,
-          'deviceInfo': {
-            'platform': Platform.operatingSystem,
-            'timestamp': DateTime.now().millisecondsSinceEpoch,
-          },
-          'verificationMethod': 'enhanced_maps',
-        },
-      };
-
-      if (widget.challenge.status == 'disputed') {
-        data['previousProofURL'] = widget.challenge.proofURL!;
-        data['resubmissionAttempt'] = true;
-        data['disputeResolved'] = false;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('trashReports')
-          .doc(widget.challenge.id)
-          .update(data);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.challenge.status == 'disputed'
-                  ? 'Proof resubmitted successfully! Under review.'
-                  : 'Cleanup proof submitted! Under review.',
-            ),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } catch (e) {
-      _showError('Failed to submit proof: $e');
-    } finally {
-      setState(() => _isSubmitting = false);
-    }
-  }
-
   void _showError(String message) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppTheme.dangerRed),
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }
 
-// Add this custom exception class at the top of your file:
+// Custom exception class
 class PermissionDeniedException implements Exception {
   final String message;
   PermissionDeniedException([this.message = 'Location permission denied']);
   @override
   String toString() => 'PermissionDeniedException: $message';
 }
-
-
-/* class _CleanupProofScreenState extends State<CleanupProofScreen> {
-  File? _proofImage;
-  bool _isSubmitting = false;
-  final StorageService _storageService = StorageService();
-  final _notesController = TextEditingController();
-
-  Position? _currentGPSPosition;
-  bool _locationVerified = false;
-  double? _distanceFromReported;
-  bool _isLoadingLocation = false; // Added to fix undefined name error
-  LocationPermission? _currentPermission;
-  String _locationStatus = 'not_checked';
-
-  bool get canResubmit => widget.challenge.status == 'disputed';
-
-  bool get isFirstSubmission =>
-      widget.challenge.proofURL == null || widget.challenge.proofURL!.isEmpty;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: Text(
-          widget.challenge.status == 'disputed'
-              ? 'Resubmit Cleanup Proof'
-              : 'Submit Cleanup Proof',
-        ),
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Show resubmission notice only for disputed status
-            if (widget.challenge.status == 'disputed')
-              _buildResubmissionNotice(),
-            _buildOriginalPhotoSection(),
-            const SizedBox(height: 24),
-
-            _buildLocationVerificationSection(),
-            const SizedBox(height: 24),
-
-            // Proof Photo Section
-            _buildProofPhotoSection(),
-            const SizedBox(height: 24),
-
-            // Notes Section
-            _buildNotesSection(),
-            const SizedBox(height: 24),
-
-            // Safety Reminder
-            _buildSafetyReminder(),
-            const SizedBox(height: 100), // Space for bottom button
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildSubmitButton(),
-    );
-  }
-  // Check location status when screen loads (no auto-detection, just status check)
-  Future<void> _checkInitialLocationStatus() async {
-    try {
-      _currentPermission = await Geolocator.checkPermission();
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      
-      setState(() {
-        if (_currentPermission == LocationPermission.denied ||
-            _currentPermission == LocationPermission.deniedForever) {
-          _locationStatus = 'denied';
-        } else if (!serviceEnabled) {
-          _locationStatus = 'service_disabled';
-        } else {
-          _locationStatus = 'ready';
-        }
-      });
-    } catch (e) {
-      setState(() => _locationStatus = 'failed');
-    }
-  }
-
-  Widget _buildLocationVerificationSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.location_on, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Location Verification', style: AppTheme.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Show challenge location
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.lightGreen.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Challenge Location:', style: AppTheme.labelMedium),
-                  const SizedBox(height: 4),
-                  Text(widget.challenge.address, style: AppTheme.bodyMedium),
-                  const SizedBox(height: 8),
-
-                  // GPS verification status
-                  if (_currentGPSPosition != null) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          _locationVerified
-                              ? Icons.check_circle
-                              : Icons.warning,
-                          size: 16,
-                          color: _locationVerified
-                              ? AppTheme.primaryGreen
-                              : AppTheme.warningOrange,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _locationVerified
-                              ? 'You are at the challenge location'
-                              : 'You are ${_distanceFromReported?.toInt()}m away',
-                          style: AppTheme.bodyMedium.copyWith(
-                            color: _locationVerified
-                                ? AppTheme.primaryGreen
-                                : AppTheme.warningOrange,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.gps_off,
-                          size: 16,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'GPS verification unavailable',
-                          style: AppTheme.bodyMedium.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (_currentGPSPosition != null &&
-                      _distanceFromReported != null) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _getDistanceColor(
-                          _distanceFromReported!,
-                        ).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _getDistanceColor(
-                            _distanceFromReported!,
-                          ).withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _getDistanceIcon(_distanceFromReported!),
-                            color: _getDistanceColor(_distanceFromReported!),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _getDistanceMessage(_distanceFromReported!),
-                              style: AppTheme.bodyMedium.copyWith(
-                                color: _getDistanceColor(
-                                  _distanceFromReported!,
-                                ),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Verify location button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _verifyCurrentLocation,
-                icon: const Icon(Icons.my_location),
-                label: const Text('Verify My Location'),
-              ),
-            ),
-
-            if (!_locationVerified && _distanceFromReported != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.warningOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'For best verification results, please go to the exact location where the trash was reported.',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.warningOrange,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getDistanceColor(double distance) {
-    if (distance <= 100) return AppTheme.primaryGreen;
-    if (distance <= 400) return AppTheme.warningOrange;
-    return AppTheme.dangerRed;
-  }
-
-  IconData _getDistanceIcon(double distance) {
-    if (distance <= 100) return Icons.check_circle;
-    if (distance <= 400) return Icons.warning_amber;
-    return Icons.error;
-  }
-
-  String _getDistanceMessage(double distance) {
-    if (distance <= 100) {
-      return 'Perfect! You are ${distance.toInt()}m from the cleanup site';
-    } else if (distance <= 400) {
-      return 'Good! You are ${distance.toInt()}m from the cleanup site';
-    } else {
-      return 'You are ${distance.toInt()}m away - consider getting closer for better verification';
-    }
-  }
-
-  /* // ADD: Location verification method
-  Future<void> _verifyCurrentLocation() async {
-    try {
-      final permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _showLocationPermissionDialog();
-        return;
-      }
-
-      _currentGPSPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
-
-      final challengeLocation = widget.challenge.location;
-      _distanceFromReported = Geolocator.distanceBetween(
-        _currentGPSPosition!.latitude,
-        _currentGPSPosition!.longitude,
-        challengeLocation.latitude,
-        challengeLocation.longitude,
-      );
-
-      setState(() {
-        _locationVerified = _distanceFromReported! <= 100; // Within 100m
-      });
-
-      if (!_locationVerified) {
-        _showLocationWarningDialog();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Location verified! You are at the challenge location.',
-            ),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unable to verify location: $e'),
-          backgroundColor: AppTheme.warningOrange,
-        ),
-      );
-    }
-  } */
-  /* Future<void> _verifyCurrentLocation() async {
-    if (_isLoadingLocation) return; // Prevent multiple calls
-
-    setState(() => _isLoadingLocation = true);
-
-    try {
-      // Check permissions first
-      final permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _showLocationPermissionDialog();
-        return;
-      }
-
-      // Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Location services are disabled');
-      }
-
-      // Get position with proper timeout handling
-      _currentGPSPosition =
-          await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy
-                .medium, // Changed from high for faster response
-            timeLimit: const Duration(seconds: 10), // Reduced timeout
-          ).timeout(
-            const Duration(seconds: 12), // Extra safety timeout
-            onTimeout: () {
-              throw TimeoutException(
-                'GPS timeout - please try again',
-                const Duration(seconds: 12),
-              );
-            },
-          );
-
-      final challengeLocation = widget.challenge.location;
-      _distanceFromReported = Geolocator.distanceBetween(
-        _currentGPSPosition!.latitude,
-        _currentGPSPosition!.longitude,
-        challengeLocation.latitude,
-        challengeLocation.longitude,
-      );
-
-      setState(() {
-        _locationVerified = _distanceFromReported! <= 100; // Within 100m
-      });
-
-      // Show appropriate feedback
-      if (_locationVerified) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Location verified! You are ${_distanceFromReported!.toInt()}m from the cleanup site.',
-            ),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-      } else if (_distanceFromReported! <= 500) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '⚠️ You are ${_distanceFromReported!.toInt()}m from the reported location.',
-            ),
-            backgroundColor: AppTheme.warningOrange,
-            action: SnackBarAction(
-              label: 'I understand',
-              textColor: Colors.white,
-              onPressed: () {},
-            ),
-          ),
-        );
-      } else {
-        _showLocationWarningDialog();
-      }
-    } on TimeoutException catch (e) {
-      print('GPS Timeout: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'GPS timeout - try moving to an open area with clear sky view',
-            ),
-            backgroundColor: AppTheme.warningOrange,
-            duration: Duration(seconds: 4),
-          ),
-        );
-      }
-    } on LocationServiceDisabledException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please enable location services in your device settings',
-            ),
-            backgroundColor: AppTheme.warningOrange,
-            action: SnackBarAction(
-              label: 'Settings',
-              textColor: Colors.white,
-              onPressed: () => Geolocator.openLocationSettings(),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Location error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Unable to get location: ${e.toString()}'),
-            backgroundColor: AppTheme.warningOrange,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoadingLocation = false);
-      }
-    }
-  } */
-  Future<void> _verifyCurrentLocation() async {
-    if (_isLoadingLocation) return;
-
-    setState(() {
-      _isLoadingLocation = true;
-      _locationStatus = 'checking';
-    });
-
-    try {
-      // Step 1: Check and request permissions properly
-      await _ensureLocationPermissions();
-
-      // Step 2: Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw LocationServiceDisabledException();
-      }
-
-      // Step 3: Get location with progressive fallback
-      _currentGPSPosition = await _getLocationWithFallback();
-
-      // Step 4: Calculate distance and update UI
-      final challengeLocation = widget.challenge.location;
-      _distanceFromReported = Geolocator.distanceBetween(
-        _currentGPSPosition!.latitude,
-        _currentGPSPosition!.longitude,
-        challengeLocation.latitude,
-        challengeLocation.longitude,
-      );
-
-      setState(() {
-        _locationVerified = _distanceFromReported! <= 100;
-        _locationStatus = 'success';
-      });
-
-      _showLocationResult();
-    } on LocationServiceDisabledException {
-      setState(() => _locationStatus = 'service_disabled');
-      _showLocationServiceDialog();
-    } on PermissionDeniedException {
-      setState(() => _locationStatus = 'denied');
-      _showPermissionDeniedDialog();
-    } on TimeoutException {
-      setState(() => _locationStatus = 'timeout');
-      _showTimeoutDialog();
-    } catch (e) {
-      setState(() => _locationStatus = 'failed');
-      _showGenericErrorDialog(e.toString());
-    } finally {
-      setState(() => _isLoadingLocation = false);
-    }
-  }
-
-  void _showLocationWarningDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Location Notice'),
-        content: Text(
-          'You appear to be ${_distanceFromReported?.toInt()}m away from the reported location. '
-          'For best verification results, please go to the exact spot where the trash was found.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('I understand'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLocationPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Location Permission'),
-        content: Text(
-          'Location verification helps confirm you are at the cleanup site. You can still submit proof without it.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Continue Without GPS'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Geolocator.openAppSettings();
-            },
-            child: Text('Open Settings'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResubmissionNotice() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.warningYellow.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.warningYellow),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.warning_amber, color: AppTheme.warningYellow),
-              const SizedBox(width: 8),
-              Text(
-                'Cleanup Proof Disputed',
-                style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.warningYellow,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Your previous proof photo was disputed. Please submit a new photo that clearly shows:',
-            style: AppTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          if (widget.challenge.proofVerification?.reasons?.isNotEmpty ??
-              false) ...[
-            ...widget.challenge.proofVerification!.reasons.map(
-              (reason) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• ', style: AppTheme.bodyMedium),
-                    Expanded(
-                      child: Text(
-                        reason,
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOriginalPhotoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Original Trash Report', style: AppTheme.headlineMedium),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: widget.challenge.imageURL,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 200,
-                  color: AppTheme.lightGreen.withOpacity(0.3),
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 200,
-                  color: AppTheme.lightGreen.withOpacity(0.3),
-                  child: const Center(child: Icon(Icons.error)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Location: ${widget.challenge.address}',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProofPhotoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cleanup Proof Photo', style: AppTheme.headlineMedium),
-            const SizedBox(height: 12),
-
-            if (_proofImage != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  _proofImage!,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _takeNewPhoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Retake Photo'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _removePhoto,
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Remove'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.dangerRed,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: AppTheme.lightGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.primaryGreen.withOpacity(0.3),
-                    style: BorderStyle.solid,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.camera_alt_outlined,
-                      size: 48,
-                      color: AppTheme.primaryGreen,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Take a photo of the cleaned area',
-                      style: AppTheme.bodyLarge.copyWith(
-                        color: AppTheme.primaryGreen,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Show the same location after cleanup',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _takePhoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Take Photo'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickFromGallery,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('From Gallery'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotesSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cleanup Notes (Optional)', style: AppTheme.headlineMedium),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _notesController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText:
-                    'Add any notes about the cleanup process, tools used, or challenges faced...',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSafetyReminder() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.infoBlue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info, color: AppTheme.infoBlue),
-              const SizedBox(width: 8),
-              Text(
-                'Cleanup Guidelines',
-                style: AppTheme.labelMedium.copyWith(color: AppTheme.infoBlue),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '• Take the photo from the same angle as the original report\n'
-            '• Ensure all visible trash has been removed\n'
-            '• Dispose of waste properly in appropriate bins\n'
-            '• If hazardous materials were involved, confirm safe disposal\n'
-            '• Your proof photo will be reviewed by the community',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: CustomButton(
-          text: _isSubmitting
-              ? 'Submitting...'
-              : (widget.challenge.status == 'disputed'
-                    ? 'Resubmit Cleanup Proof'
-                    : 'Submit Cleanup Proof'),
-          icon: Icons.check_circle,
-          isLoading: _isSubmitting,
-          onPressed: _proofImage != null ? _submitProof : null,
-          backgroundColor: widget.challenge.status == 'disputed'
-              ? AppTheme.warningYellow
-              : AppTheme.primaryGreen,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-
-      if (image != null) {
-        setState(() {
-          _proofImage = File(image.path);
-        });
-      }
-    } catch (e) {
-      _showError('Failed to take photo: $e');
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-
-      if (image != null) {
-        setState(() {
-          _proofImage = File(image.path);
-        });
-      }
-    } catch (e) {
-      _showError('Failed to pick image: $e');
-    }
-  }
-
-  void _takeNewPhoto() {
-    _takePhoto();
-  }
-
-  void _removePhoto() {
-    setState(() {
-      _proofImage = null;
-    });
-  }
-
-  /* Future<void> _submitProof() async {
-    if (_proofImage == null) return;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final proofURL = await _storageService.uploadCleanupProofImage(
-        _proofImage!,
-        widget.challenge.id,
-        authProvider.user!.uid,
-      );
-
-      final data = {
-        'proofURL': proofURL,
-        'proofTimestamp': FieldValue.serverTimestamp(),
-        'cleanupNotes': _notesController.text.trim(),
-        'status': 'processing',
-      };
-
-      // Add resubmission-specific fields
-      if (widget.challenge.status == 'disputed') {
-        data['previousProofURL'] = widget.challenge.proofURL!;
-        data['resubmissionAttempt'] = true;
-        data['disputeResolved'] = false;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('trashReports')
-          .doc(widget.challenge.id)
-          .update(data);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.challenge.status == 'disputed'
-                  ? 'Proof resubmitted successfully! Under review.'
-                  : 'Cleanup proof submitted! Under review.',
-            ),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } catch (e) {
-      _showError('Failed to submit proof: $e');
-    } finally {
-      setState(() => _isSubmitting = false);
-    }
-  } */
-  Future<void> _submitProof() async {
-    if (_proofImage == null) return;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final proofURL = await _storageService.uploadCleanupProofImage(
-        _proofImage!,
-        widget.challenge.id,
-        authProvider.user!.uid,
-      );
-
-      // Enhanced data with location verification
-      final data = {
-        'proofURL': proofURL,
-        'proofTimestamp': FieldValue.serverTimestamp(),
-        'cleanupNotes': _notesController.text.trim(),
-        'status': 'processing',
-
-        // NEW: Enhanced verification metadata
-        'proofMetadata': {
-          'submissionLocation': _currentGPSPosition != null
-              ? GeoPoint(
-                  _currentGPSPosition!.latitude,
-                  _currentGPSPosition!.longitude,
-                )
-              : null,
-          'locationVerified': _locationVerified,
-          'distanceFromReported': _distanceFromReported,
-          'deviceInfo': {
-            'platform': Platform.operatingSystem,
-            'timestamp': DateTime.now().millisecondsSinceEpoch,
-          },
-          'verificationMethod': 'enhanced_maps',
-        },
-      };
-
-      if (widget.challenge.status == 'disputed') {
-        data['previousProofURL'] = widget.challenge.proofURL!;
-        data['resubmissionAttempt'] = true;
-        data['disputeResolved'] = false;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('trashReports')
-          .doc(widget.challenge.id)
-          .update(data);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.challenge.status == 'disputed'
-                  ? 'Proof resubmitted successfully! Under review.'
-                  : 'Cleanup proof submitted! Under review.',
-            ),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } catch (e) {
-      _showError('Failed to submit proof: $e');
-    } finally {
-      setState(() => _isSubmitting = false);
-    }
-  }
-
-  // In your CleanupProofScreen - add this to show verification status
-  Widget _buildVerificationStatus() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(Icons.security, color: AppTheme.infoBlue),
-            SizedBox(height: 8),
-            Text('AI Verification', style: AppTheme.headlineMedium),
-            SizedBox(height: 8),
-            Text(
-              'Your proof will be automatically verified using AI to ensure it shows the same location cleaned up.',
-              style: AppTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showError(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppTheme.dangerRed),
-    );
-  }
-
-  @override
-  void dispose() {
-    _notesController.dispose();
-    super.dispose();
-  }
-}
- */

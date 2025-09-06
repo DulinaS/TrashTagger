@@ -1,4 +1,4 @@
-// lib/screens/profile/profile_screen.dart
+// lib/screens/profile/profile_screen.dart - Modern Vibrant Design
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,6 +11,8 @@ import '../../themes/app_theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../models/user_model.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/animation_constants.dart';
 import 'help_support_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -18,14 +20,34 @@ class ProfileScreen extends StatefulWidget {
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with TickerProviderStateMixin {
   List<UserModel> _leaderboard = [];
   bool _isLoadingLeaderboard = false;
+
+  late AnimationController _refreshController;
+  late AnimationController _avatarController;
 
   @override
   void initState() {
     super.initState();
+    _refreshController = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    );
+    _avatarController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    );
+    _avatarController.repeat(reverse: true);
     _loadLeaderboard();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    _avatarController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLeaderboard() async {
@@ -48,19 +70,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoadingLeaderboard = false);
   }
 
+  Future<void> _refreshProfile() async {
+    _refreshController.forward().then((_) {
+      _refreshController.reset();
+    });
+    await _loadLeaderboard();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _routeToSettingsScreen(),
-          ),
-        ],
-      ),
+      backgroundColor: AppTheme.backgroundPrimary,
       body: Consumer<UserProvider>(
         builder: (context, userProvider, child) {
           if (userProvider.isLoading) {
@@ -72,166 +92,302 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: Text('Unable to load profile'));
           }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Profile Header
-                _buildProfileHeader(user),
-                const SizedBox(height: 24),
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildModernAppBar(user),
+              SliverToBoxAdapter(
+                child: RefreshIndicator(
+                  onRefresh: _refreshProfile,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
 
-                // Stats Overview
-                _buildStatsOverview(user),
-                const SizedBox(height: 24),
+                        // Profile Stats Overview
+                        SlideInAnimation(
+                          delay: AnimationConstants.shortDelay,
+                          child: _buildStatsOverview(user),
+                        ),
+                        const SizedBox(height: 24),
 
-                // Achievements Section
-                _buildAchievementsSection(user),
-                const SizedBox(height: 24),
+                        // Level Progress Card
+                        SlideInAnimation(
+                          delay: AnimationConstants.mediumDelay,
+                          child: _buildLevelProgressCard(user),
+                        ),
+                        const SizedBox(height: 24),
 
-                // Leaderboard Section
-                _buildLeaderboardSection(),
-                const SizedBox(height: 24),
+                        // Quick Actions Grid
+                        SlideInAnimation(
+                          delay: AnimationConstants.longDelay,
+                          child: _buildQuickActionsGrid(),
+                        ),
+                        const SizedBox(height: 24),
 
-                // Sign Out Button
-                _buildSignOutSection(),
-              ],
-            ),
+                        // Achievements Section
+                        SlideInAnimation(
+                          delay: const Duration(milliseconds: 600),
+                          child: _buildAchievementsSection(user),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Leaderboard Section
+                        SlideInAnimation(
+                          delay: const Duration(milliseconds: 700),
+                          child: _buildLeaderboardSection(),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Account Actions
+                        SlideInAnimation(
+                          delay: const Duration(milliseconds: 800),
+                          child: _buildAccountSection(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildProfileHeader(UserModel user) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            // Profile Picture
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppTheme.primaryGreen,
-              backgroundImage: user.photoURL != null
-                  ? NetworkImage(user.photoURL!)
-                  : null,
-              child: user.photoURL == null
-                  ? Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                      style: AppTheme.headlineLarge.copyWith(
-                        color: Colors.white,
-                        fontSize: 36,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(height: 16),
+  Widget _buildModernAppBar(UserModel user) {
+    return SliverAppBar(
+      expandedHeight: 200,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.backgroundPrimary,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+              child: Column(
+                children: [
+                  // Profile Avatar with Animation
+                  AnimatedBuilder(
+                    animation: _avatarController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: 1.0 + (_avatarController.value * 0.05),
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: user.photoURL != null
+                                ? Image.network(
+                                    user.photoURL!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _buildDefaultAvatar(user.name),
+                                  )
+                                : _buildDefaultAvatar(user.name),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-            // Name and Level
-            Text(
-              user.name,
-              style: AppTheme.headlineLarge,
-              textAlign: TextAlign.center,
+                  // User Name and Level
+                  Text(
+                    user.name,
+                    style: AppTheme.headlineLarge.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Level ${user.level} • ${Helpers.formatPoints(user.totalPoints)} points',
+                          style: AppTheme.labelLarge.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          ),
+        ),
+        title: Text(
+          'Profile',
+          style: AppTheme.titleLarge.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 20),
+          child: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                'Level ${user.level} • ${Helpers.formatPoints(user.totalPoints)} points',
-                style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.primaryGreen,
-                ),
+              child: Icon(
+                Icons.settings_rounded,
+                color: Colors.white,
+                size: 20,
               ),
             ),
-            const SizedBox(height: 16),
+            onPressed: () => _routeToSettingsScreen(),
+          ),
+        ),
+      ],
+    );
+  }
 
-            // Level Progress
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Level ${user.level}', style: AppTheme.bodyMedium),
-                    Text('Level ${user.level + 1}', style: AppTheme.bodyMedium),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: _calculateLevelProgress(user.totalPoints, user.level),
-                  backgroundColor: AppTheme.lightGreen,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppTheme.primaryGreen,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_getPointsToNextLevel(user.totalPoints, user.level)} points to next level',
-                  style: AppTheme.bodyMedium.copyWith(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
+  Widget _buildDefaultAvatar(String name) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : 'U',
+          style: AppTheme.displayMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatsOverview(UserModel user) {
-    return Card(
-      child: Padding(
+    return StaggeredListAnimation(
+      direction: Axis.horizontal,
+      itemDelay: const Duration(milliseconds: 100),
+      children: [
+        _buildStatCard(
+          'Reports',
+          user.stats.reportsSubmitted.toString(),
+          Icons.report_rounded,
+          AppTheme.primaryTeal,
+          LinearGradient(colors: [AppTheme.primaryTeal, AppTheme.infoBlue]),
+        ),
+        _buildStatCard(
+          'Cleanups',
+          user.stats.challengesCompleted.toString(),
+          Icons.cleaning_services_rounded,
+          AppTheme.primaryEmerald,
+          AppTheme.successGradient,
+        ),
+        _buildStatCard(
+          'Badges',
+          user.badges.length.toString(),
+          Icons.military_tech_rounded,
+          AppTheme.accentAmber,
+          AppTheme.warningGradient,
+        ),
+        _buildStatCard(
+          'Streak',
+          user.stats.weeklyStreak.toString(),
+          Icons.local_fire_department_rounded,
+          AppTheme.accentCoral,
+          LinearGradient(colors: [AppTheme.accentCoral, AppTheme.errorRed]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+    LinearGradient gradient,
+  ) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Your Impact', style: AppTheme.headlineMedium),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatItem(
-                    'Reports',
-                    user.stats.reportsSubmitted.toString(),
-                    Icons.report_outlined,
-                    AppTheme.infoBlue,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Cleanups',
-                    user.stats.challengesCompleted.toString(),
-                    Icons.cleaning_services_outlined,
-                    AppTheme.primaryGreen,
-                  ),
-                ),
-              ],
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundSecondary,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.borderLight),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatItem(
-                    'Monthly Points',
-                    user.stats.monthlyPoints.toString(),
-                    Icons.trending_up,
-                    AppTheme.warningOrange,
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Weekly Streak',
-                    user.stats.weeklyStreak.toString(),
-                    Icons.local_fire_department,
-                    AppTheme.dangerRed,
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: AppTheme.headlineMedium.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              label,
+              style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -239,120 +395,369 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildLevelProgressCard(UserModel user) {
+    final progress = _calculateLevelProgress(user.totalPoints, user.level);
+    final pointsToNext = _getPointsToNextLevel(user.totalPoints, user.level);
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.accentPurple.withOpacity(0.1),
+            AppTheme.primaryTeal.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 32, color: color),
-          const SizedBox(height: 8),
-          Text(value, style: AppTheme.headlineMedium.copyWith(color: color)),
-          Text(
-            label,
-            style: AppTheme.bodyMedium.copyWith(fontSize: 12),
-            textAlign: TextAlign.center,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.accentPurple, AppTheme.primaryTeal],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.trending_up_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Level Progress',
+                      style: AppTheme.titleLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '$pointsToNext points to Level ${user.level + 1}',
+                      style: AppTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: AppTheme.headlineMedium.copyWith(
+                  color: AppTheme.accentPurple,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Progress Bar
+          Stack(
+            children: [
+              Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderLight,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: progress,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.accentPurple, AppTheme.primaryTeal],
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Level ${user.level}', style: AppTheme.bodySmall),
+              Text('Level ${user.level + 1}', style: AppTheme.bodySmall),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAchievementsSection(UserModel user) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildQuickActionsGrid() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: AppTheme.headlineMedium.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.3,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            _buildActionCard(
+              'View Badges',
+              'See achievements',
+              Icons.military_tech_rounded,
+              AppTheme.warningGradient,
+              () => _routeToBadgesScreen(),
+            ),
+            _buildActionCard(
+              'Leaderboard',
+              'Compare ranking',
+              Icons.leaderboard_rounded,
+              LinearGradient(
+                colors: [AppTheme.accentAmber, AppTheme.warningAmber],
+              ),
+              () => _routeToLeaderboardScreen(),
+            ),
+            _buildActionCard(
+              'Settings',
+              'Manage account',
+              Icons.settings_rounded,
+              LinearGradient(
+                colors: [AppTheme.textSecondary, AppTheme.textTertiary],
+              ),
+              () => _routeToSettingsScreen(),
+            ),
+            _buildActionCard(
+              'Help & Support',
+              'Get assistance',
+              Icons.help_rounded,
+              LinearGradient(colors: [AppTheme.infoBlue, AppTheme.primaryTeal]),
+              () => _routeToHelpScreen(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    LinearGradient gradient,
+    VoidCallback onTap,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowLight,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Achievements', style: AppTheme.headlineMedium),
-                TextButton(
-                  onPressed: () => _routeToBadgesScreen(),
-                  child: const Text('View All'),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: gradient.colors.first.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 24),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: AppTheme.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: AppTheme.bodySmall,
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            if (user.badges.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.military_tech_outlined,
-                      size: 48,
-                      color: AppTheme.textSecondary,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No badges yet',
-                      style: AppTheme.headlineMedium.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Complete challenges to earn your first badge!',
-                      style: AppTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: user.badges.length > 8 ? 8 : user.badges.length,
-                itemBuilder: (context, index) {
-                  final badgeId = user.badges[index];
-                  return _buildBadgeItem(badgeId);
-                },
-              ),
-          ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildAchievementsSection(UserModel user) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: AppTheme.cardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.warningGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.military_tech_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Achievements',
+                    style: AppTheme.headlineMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: () => _routeToBadgesScreen(),
+                child: Text(
+                  'View All',
+                  style: AppTheme.labelMedium.copyWith(
+                    color: AppTheme.primaryEmerald,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          if (user.badges.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppTheme.textTertiary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Icon(
+                      Icons.military_tech_outlined,
+                      size: 40,
+                      color: AppTheme.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No badges yet',
+                    style: AppTheme.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Complete challenges to earn your first badge!',
+                    style: AppTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.9,
+              ),
+              itemCount: user.badges.length > 8 ? 8 : user.badges.length,
+              itemBuilder: (context, index) {
+                final badgeId = user.badges[index];
+                return _buildBadgeItem(badgeId);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBadgeItem(String badgeId) {
-    // Map badge IDs to display info
     final badgeInfo = _getBadgeInfo(badgeId);
 
     return Container(
       decoration: BoxDecoration(
-        color: badgeInfo['color'].withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            badgeInfo['color'].withOpacity(0.1),
+            badgeInfo['color'].withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: badgeInfo['color'].withOpacity(0.3)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(badgeInfo['icon'], size: 28, color: badgeInfo['color']),
-          const SizedBox(height: 4),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  badgeInfo['color'],
+                  badgeInfo['color'].withOpacity(0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(badgeInfo['icon'], size: 18, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
           Text(
             badgeInfo['name'],
-            style: AppTheme.bodyMedium.copyWith(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -363,37 +768,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildLeaderboardSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Leaderboard', style: AppTheme.headlineMedium),
-                TextButton(
-                  onPressed: () => _routeToLeaderboardScreen(),
-                  child: const Text('View All'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            if (_isLoadingLeaderboard)
-              const Center(child: CircularProgressIndicator())
-            else if (_leaderboard.isEmpty)
-              const Center(child: Text('No leaderboard data available'))
-            else
-              Column(
-                children: _leaderboard.take(5).map((user) {
-                  final index = _leaderboard.indexOf(user);
-                  return _buildLeaderboardItem(user, index + 1);
-                }).toList(),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: AppTheme.cardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppTheme.accentAmber, AppTheme.warningAmber],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.leaderboard_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Leaderboard',
+                    style: AppTheme.headlineMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-          ],
-        ),
+              TextButton(
+                onPressed: () => _routeToLeaderboardScreen(),
+                child: Text(
+                  'View All',
+                  style: AppTheme.labelMedium.copyWith(
+                    color: AppTheme.primaryEmerald,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          if (_isLoadingLeaderboard)
+            const Center(child: CircularProgressIndicator())
+          else if (_leaderboard.isEmpty)
+            const Center(child: Text('No leaderboard data available'))
+          else
+            Column(
+              children: _leaderboard.take(5).map((user) {
+                final index = _leaderboard.indexOf(user);
+                return _buildLeaderboardItem(user, index + 1);
+              }).toList(),
+            ),
+        ],
       ),
     );
   }
@@ -403,13 +836,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Provider.of<AuthProvider>(context, listen: false).user?.uid == user.id;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCurrentUser ? AppTheme.primaryGreen.withOpacity(0.1) : null,
-        borderRadius: BorderRadius.circular(8),
+        color: isCurrentUser
+            ? AppTheme.primaryEmerald.withOpacity(0.1)
+            : AppTheme.backgroundPrimary,
+        borderRadius: BorderRadius.circular(12),
         border: isCurrentUser
-            ? Border.all(color: AppTheme.primaryGreen.withOpacity(0.3))
+            ? Border.all(color: AppTheme.primaryEmerald.withOpacity(0.3))
             : null,
       ),
       child: Row(
@@ -419,17 +854,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
+              gradient: _getRankGradient(rank),
               shape: BoxShape.circle,
-              color: _getRankColor(rank),
             ),
             child: Center(
-              child: Text(
-                rank.toString(),
-                style: AppTheme.labelMedium.copyWith(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-              ),
+              child: rank <= 3
+                  ? Icon(
+                      rank == 1
+                          ? Icons.emoji_events_rounded
+                          : Icons.military_tech_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    )
+                  : Text(
+                      rank.toString(),
+                      style: AppTheme.labelMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 12),
@@ -437,7 +880,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Profile Picture
           CircleAvatar(
             radius: 20,
-            backgroundColor: AppTheme.primaryGreen,
+            backgroundColor: AppTheme.primaryEmerald,
             backgroundImage: user.photoURL != null
                 ? NetworkImage(user.photoURL!)
                 : null,
@@ -460,21 +903,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   user.name,
-                  style: AppTheme.labelMedium.copyWith(
+                  style: AppTheme.titleMedium.copyWith(
                     fontWeight: isCurrentUser
                         ? FontWeight.bold
-                        : FontWeight.normal,
+                        : FontWeight.w600,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  'Level ${user.level}',
-                  style: AppTheme.bodyMedium.copyWith(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
+                Text('Level ${user.level}', style: AppTheme.bodySmall),
               ],
             ),
           ),
@@ -485,63 +922,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Text(
                 Helpers.formatPoints(user.totalPoints),
-                style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.primaryGreen,
-                  fontWeight: FontWeight.w600,
+                style: AppTheme.titleMedium.copyWith(
+                  color: AppTheme.primaryEmerald,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              Text(
-                'points',
-                style: AppTheme.bodyMedium.copyWith(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
+              Text('points', style: AppTheme.bodySmall),
             ],
           ),
 
           if (isCurrentUser)
-            Icon(Icons.person, color: AppTheme.primaryGreen, size: 20),
+            Icon(
+              Icons.person_rounded,
+              color: AppTheme.primaryEmerald,
+              size: 20,
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildSignOutSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Account', style: AppTheme.headlineMedium),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: Icon(Icons.settings, color: AppTheme.textSecondary),
-              title: const Text('Settings'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => _routeToSettingsScreen(),
+  Widget _buildAccountSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: AppTheme.cardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Account',
+            style: AppTheme.headlineMedium.copyWith(
+              fontWeight: FontWeight.w700,
             ),
-            ListTile(
-              leading: Icon(Icons.help_outline, color: AppTheme.textSecondary),
-              title: const Text('Help & Support'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HelpSupportScreen()),
-                );
-              },
+          ),
+          const SizedBox(height: 20),
+
+          _buildAccountItem(
+            'Settings',
+            'Manage your preferences',
+            Icons.settings_rounded,
+            AppTheme.textSecondary,
+            () => _routeToSettingsScreen(),
+          ),
+          _buildAccountItem(
+            'Help & Support',
+            'Get help and contact us',
+            Icons.help_rounded,
+            AppTheme.infoBlue,
+            () => _routeToHelpScreen(),
+          ),
+          _buildAccountItem(
+            'Sign Out',
+            'Sign out of your account',
+            Icons.logout_rounded,
+            AppTheme.errorRed,
+            _showSignOutDialog,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountItem(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTheme.titleMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: title == 'Sign Out'
+                              ? color
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(subtitle, style: AppTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.textTertiary,
+                ),
+              ],
             ),
-            ListTile(
-              leading: Icon(Icons.logout, color: AppTheme.dangerRed),
-              title: Text(
-                'Sign Out',
-                style: AppTheme.labelMedium.copyWith(color: AppTheme.dangerRed),
-              ),
-              onTap: _showSignOutDialog,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -551,21 +1044,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Sign Out',
+          style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Are you sure you want to sign out?',
+          style: AppTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Provider.of<AuthProvider>(context, listen: false).signOut();
-            },
             child: Text(
-              'Sign Out',
-              style: TextStyle(color: AppTheme.dangerRed),
+              'Cancel',
+              style: AppTheme.labelMedium.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppTheme.errorGradient,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Provider.of<AuthProvider>(context, listen: false).signOut();
+              },
+              child: Text(
+                'Sign Out',
+                style: AppTheme.labelMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],
@@ -591,6 +1105,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SettingsScreen()),
+    );
+  }
+
+  void _routeToHelpScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => HelpSupportScreen()),
     );
   }
 
@@ -621,16 +1142,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return nextLevelPoints - currentPoints;
   }
 
-  Color _getRankColor(int rank) {
+  LinearGradient _getRankGradient(int rank) {
     switch (rank) {
       case 1:
-        return const Color(0xFFFFD700); // Gold
+        return LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA500)]);
       case 2:
-        return const Color(0xFFC0C0C0); // Silver
+        return LinearGradient(colors: [Color(0xFFC0C0C0), Color(0xFF999999)]);
       case 3:
-        return const Color(0xFFCD7F32); // Bronze
+        return LinearGradient(colors: [Color(0xFFCD7F32), Color(0xFF8B4513)]);
       default:
-        return AppTheme.primaryGreen;
+        return AppTheme.primaryGradient;
     }
   }
 
@@ -638,57 +1159,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final badgeMap = {
       'first_report': {
         'name': 'First Step',
-        'icon': Icons.flag,
-        'color': AppTheme.primaryGreen,
+        'icon': Icons.flag_rounded,
+        'color': AppTheme.primaryEmerald,
       },
       'first_cleanup': {
         'name': 'Cleanup Hero',
-        'icon': Icons.cleaning_services,
+        'icon': Icons.cleaning_services_rounded,
         'color': AppTheme.infoBlue,
       },
       'reporter_bronze': {
         'name': 'Bronze Reporter',
-        'icon': Icons.report,
-        'color': const Color(0xFFCD7F32),
+        'icon': Icons.report_rounded,
+        'color': Color(0xFFCD7F32),
       },
       'cleaner_bronze': {
         'name': 'Bronze Cleaner',
-        'icon': Icons.eco,
-        'color': const Color(0xFFCD7F32),
+        'icon': Icons.eco_rounded,
+        'color': Color(0xFFCD7F32),
       },
       'century_club': {
         'name': 'Century Club',
-        'icon': Icons.star,
-        'color': AppTheme.warningOrange,
+        'icon': Icons.star_rounded,
+        'color': AppTheme.accentAmber,
       },
       'high_achiever': {
         'name': 'High Achiever',
-        'icon': Icons.emoji_events,
-        'color': const Color(0xFFFFD700),
+        'icon': Icons.emoji_events_rounded,
+        'color': Color(0xFFFFD700),
       },
       'hazard_handler': {
         'name': 'Hazard Handler',
-        'icon': Icons.warning,
-        'color': AppTheme.dangerRed,
+        'icon': Icons.warning_rounded,
+        'color': AppTheme.errorRed,
       },
       'recycling_champion': {
         'name': 'Recycling Champion',
-        'icon': Icons.recycling,
-        'color': AppTheme.primaryGreen,
+        'icon': Icons.recycling_rounded,
+        'color': AppTheme.primaryEmerald,
       },
       'weekly_warrior': {
         'name': 'Weekly Warrior',
-        'icon': Icons.local_fire_department,
-        'color': AppTheme.dangerRed,
+        'icon': Icons.local_fire_department_rounded,
+        'color': AppTheme.accentCoral,
       },
       'top_ten': {
         'name': 'Top 10',
-        'icon': Icons.military_tech,
-        'color': const Color(0xFFFFD700),
+        'icon': Icons.military_tech_rounded,
+        'color': Color(0xFFFFD700),
       },
     };
 
     return badgeMap[badgeId] ??
-        {'name': 'Badge', 'icon': Icons.help, 'color': AppTheme.textSecondary};
+        {
+          'name': 'Badge',
+          'icon': Icons.help_rounded,
+          'color': AppTheme.textTertiary,
+        };
   }
 }

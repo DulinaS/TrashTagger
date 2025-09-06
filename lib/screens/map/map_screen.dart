@@ -1,3 +1,4 @@
+// lib/screens/map/map_screen.dart - Modern Vibrant Design
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,26 +18,42 @@ class MapScreen extends StatefulWidget {
   _MapScreenState createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   List<TrashReportModel> _nearbyReports = [];
   bool _isLoading = true;
   Position? _currentPosition;
   String _selectedFilter = 'all';
 
+  late AnimationController _refreshController;
+  late AnimationController _filterController;
+
   @override
   void initState() {
     super.initState();
+    _refreshController = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    );
+    _filterController = AnimationController(
+      duration: AnimationConstants.mediumDuration,
+      vsync: this,
+    );
     _loadNearbyReports();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    _filterController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNearbyReports() async {
     setState(() => _isLoading = true);
 
     try {
-      // Get current location
       await _getCurrentLocation();
 
-      // Load reports from Firestore
       Query query = FirebaseFirestore.instance
           .collection('trashReports')
           .where('status', whereIn: ['verified', 'cleaning'])
@@ -48,13 +65,12 @@ class _MapScreenState extends State<MapScreen> {
       List<TrashReportModel> allReports = snapshot.docs
           .map(
             (doc) => TrashReportModel.fromMap({
-              '_documentId': doc.id, // Use actual document ID
+              '_documentId': doc.id,
               ...doc.data() as Map<String, dynamic>,
             }),
           )
           .toList();
 
-      // Filter by distance if location available
       if (_currentPosition != null) {
         _nearbyReports = allReports.where((report) {
           double distance =
@@ -64,15 +80,14 @@ class _MapScreenState extends State<MapScreen> {
                 report.location.latitude,
                 report.location.longitude,
               ) /
-              1000; // Convert to km
+              1000;
 
-          return distance <= 50; // Within 50km
+          return distance <= 50;
         }).toList();
       } else {
         _nearbyReports = allReports;
       }
 
-      // Sort by distance if location available
       if (_currentPosition != null) {
         _nearbyReports.sort((a, b) {
           double distanceA = Geolocator.distanceBetween(
@@ -132,49 +147,66 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Future<void> _refreshReports() async {
+    _refreshController.forward().then((_) {
+      _refreshController.reset();
+    });
+    await _loadNearbyReports();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: const Text('Nearby Reports'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadNearbyReports,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filter Section
-          SlideInAnimation(
-            beginOffset: const Offset(0, -0.3),
-            duration: AnimationConstants.slowDuration,
-            curve: AnimationConstants.bounceCurve,
-            child: _buildFilterSection(),
+      backgroundColor: AppTheme.backgroundPrimary,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildModernAppBar(),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                // Location Status and Stats
+                SlideInAnimation(
+                  delay: AnimationConstants.shortDelay,
+                  child: _buildLocationHeader(),
+                ),
+
+                // Filter Section
+                SlideInAnimation(
+                  beginOffset: const Offset(0, -0.3),
+                  duration: AnimationConstants.slowDuration,
+                  curve: AnimationConstants.bounceCurve,
+                  child: _buildFilterSection(),
+                ),
+              ],
+            ),
           ),
 
           // Reports List
-          Expanded(
-            child: _isLoading
-                ? const LoadingWidget(message: 'Loading nearby reports...')
-                : _buildReportsList(),
-          ),
+          _isLoading
+              ? SliverToBoxAdapter(
+                  child: const LoadingWidget(
+                    message: 'Loading nearby reports...',
+                  ),
+                )
+              : _buildReportsSliver(),
         ],
       ),
       floatingActionButton: AnimatedFAB(
         onPressed: _navigateToMapView,
         heroTag: "mapViewFAB",
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: AppTheme.primaryEmerald,
         foregroundColor: Colors.white,
         delay: AnimationConstants.longDelay,
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.map_outlined),
-            SizedBox(width: 8),
-            Text('Map View'),
+          children: [
+            const Icon(Icons.map_rounded),
+            const SizedBox(width: 8),
+            Text(
+              'Map View',
+              style: AppTheme.labelMedium.copyWith(color: Colors.white),
+            ),
           ],
         ),
       ),
@@ -182,41 +214,170 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildFilterSection() {
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 120,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.backgroundPrimary,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryEmerald.withOpacity(0.1),
+                AppTheme.primaryTeal.withOpacity(0.05),
+              ],
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryTeal, AppTheme.accentPurple],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.location_on_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Nearby Reports',
+              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 20),
+          child: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundSecondary,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderLight),
+              ),
+              child: Icon(
+                Icons.refresh_rounded,
+                color: AppTheme.textPrimary,
+                size: 20,
+              ),
+            ),
+            onPressed: _refreshReports,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationHeader() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryEmerald.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.filter_list, color: AppTheme.primaryGreen),
-              const SizedBox(width: 8),
-              Text('Filter by Type', style: AppTheme.labelMedium),
-              const Spacer(),
-              // Reports counter with animation
-              AnimatedContainer(
-                duration: AnimationConstants.fastDuration,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _currentPosition != null
+                      ? Icons.gps_fixed_rounded
+                      : Icons.gps_off_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _currentPosition != null
+                          ? 'Location Found'
+                          : 'Location Not Available',
+                      style: AppTheme.titleMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      _currentPosition != null
+                          ? 'Showing reports within 50km'
+                          : 'Showing all available reports',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 4,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${_filteredReports.length} found',
-                  style: AppTheme.bodyMedium.copyWith(
-                    fontSize: 12,
+                  style: AppTheme.labelMedium.copyWith(
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryGreen,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Filter by Type',
+            style: AppTheme.headlineMedium.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: StaggeredListAnimation(
@@ -226,12 +387,20 @@ class _MapScreenState extends State<MapScreen> {
               ),
               beginOffset: const Offset(0.3, 0),
               children: [
-                _buildFilterChip('all', 'All', Icons.view_list),
-                _buildFilterChip('general', 'General', Icons.delete_outline),
-                _buildFilterChip('recyclable', 'Recyclable', Icons.recycling),
-                _buildFilterChip('hazardous', 'Hazardous', Icons.warning),
-                _buildFilterChip('large', 'Large Items', Icons.chair),
-                _buildFilterChip('organic', 'Organic', Icons.eco),
+                _buildFilterChip('all', 'All', Icons.view_list_rounded),
+                _buildFilterChip('general', 'General', Icons.delete_rounded),
+                _buildFilterChip(
+                  'recyclable',
+                  'Recyclable',
+                  Icons.recycling_rounded,
+                ),
+                _buildFilterChip(
+                  'hazardous',
+                  'Hazardous',
+                  Icons.warning_rounded,
+                ),
+                _buildFilterChip('large', 'Large Items', Icons.chair_rounded),
+                _buildFilterChip('organic', 'Organic', Icons.eco_rounded),
               ],
             ),
           ),
@@ -247,7 +416,7 @@ class _MapScreenState extends State<MapScreen> {
         : _nearbyReports.where((r) => r.trashType == value).length;
 
     return Container(
-      margin: const EdgeInsets.only(right: 8),
+      margin: const EdgeInsets.only(right: 12),
       child: AnimatedContainer(
         duration: AnimationConstants.fastDuration,
         curve: AnimationConstants.smoothCurve,
@@ -255,14 +424,14 @@ class _MapScreenState extends State<MapScreen> {
           avatar: Icon(
             icon,
             size: 18,
-            color: isSelected ? Colors.white : AppTheme.primaryGreen,
+            color: isSelected ? Colors.white : AppTheme.primaryEmerald,
           ),
           label: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(label),
               if (count > 0) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 AnimatedContainer(
                   duration: AnimationConstants.fastDuration,
                   padding: const EdgeInsets.symmetric(
@@ -272,15 +441,16 @@ class _MapScreenState extends State<MapScreen> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Colors.white.withOpacity(0.2)
-                        : AppTheme.primaryGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                        : AppTheme.primaryEmerald.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
-                      fontSize: 11,
+                    style: AppTheme.labelSmall.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : AppTheme.primaryGreen,
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.primaryEmerald,
                     ),
                   ),
                 ),
@@ -290,116 +460,172 @@ class _MapScreenState extends State<MapScreen> {
           selected: isSelected,
           onSelected: (selected) {
             setState(() => _selectedFilter = value);
+            _filterController.forward().then((_) {
+              _filterController.reset();
+            });
           },
-          selectedColor: AppTheme.primaryGreen,
+          selectedColor: AppTheme.primaryEmerald,
           checkmarkColor: Colors.white,
           labelStyle: TextStyle(
-            color: isSelected ? Colors.white : AppTheme.primaryGreen,
+            color: isSelected ? Colors.white : AppTheme.primaryEmerald,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildReportsList() {
+  Widget _buildReportsSliver() {
     final reports = _filteredReports;
 
     if (reports.isEmpty) {
-      return SlideInAnimation(
-        beginOffset: const Offset(0, 0.3),
-        delay: AnimationConstants.shortDelay,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ScaleInAnimation(
-                  child: Icon(
-                    Icons.location_off,
-                    size: 80,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SlideInAnimation(
-                  beginOffset: const Offset(0, 0.2),
-                  delay: const Duration(milliseconds: 200),
-                  child: Text(
-                    _selectedFilter == 'all'
-                        ? 'No Reports Nearby'
-                        : 'No ${Helpers.getTrashTypeDisplayName(_selectedFilter)} Reports',
-                    style: AppTheme.headlineMedium.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SlideInAnimation(
-                  beginOffset: const Offset(0, 0.2),
-                  delay: const Duration(milliseconds: 300),
-                  child: Text(
-                    _currentPosition == null
-                        ? 'Enable location to see nearby reports'
-                        : 'Be the first to report trash in your area!',
-                    style: AppTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                if (_currentPosition == null) ...[
-                  const SizedBox(height: 24),
-                  ScaleInAnimation(
-                    delay: const Duration(milliseconds: 400),
-                    child: ElevatedButton.icon(
-                      onPressed: _loadNearbyReports,
-                      icon: const Icon(Icons.location_on),
-                      label: const Text('Enable Location'),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                ScaleInAnimation(
-                  delay: const Duration(milliseconds: 500),
-                  child: OutlinedButton.icon(
-                    onPressed: _navigateToMapView,
-                    icon: const Icon(Icons.map_outlined),
-                    label: const Text('View on Map'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+      return SliverToBoxAdapter(
+        child: SlideInAnimation(
+          beginOffset: const Offset(0, 0.3),
+          delay: AnimationConstants.shortDelay,
+          child: _buildEmptyState(),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadNearbyReports,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          100,
-        ), // Extra bottom padding for FAB
-        itemCount: reports.length,
-        itemBuilder: (context, index) {
-          return SlideInAnimation(
-            duration: AnimationConstants.mediumDuration,
-            delay: Duration(
-              milliseconds: index * AnimationConstants.cardStaggerDelayMs,
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        return SlideInAnimation(
+          duration: AnimationConstants.mediumDuration,
+          delay: Duration(
+            milliseconds: index * AnimationConstants.cardStaggerDelayMs,
+          ),
+          beginOffset: const Offset(0.3, 0),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              index == 0 ? 16 : 8,
+              20,
+              index == reports.length - 1 ? 120 : 8,
             ),
-            beginOffset: const Offset(0.3, 0),
-            child: _buildReportCard(reports[index], index),
-          );
-        },
+            child: _buildModernReportCard(reports[index], index),
+          ),
+        );
+      }, childCount: reports.length),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ScaleInAnimation(
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryEmerald.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.location_off_rounded,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SlideInAnimation(
+              beginOffset: const Offset(0, 0.2),
+              delay: const Duration(milliseconds: 200),
+              child: Text(
+                _selectedFilter == 'all'
+                    ? 'No Reports Nearby'
+                    : 'No ${Helpers.getTrashTypeDisplayName(_selectedFilter)} Reports',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SlideInAnimation(
+              beginOffset: const Offset(0, 0.2),
+              delay: const Duration(milliseconds: 300),
+              child: Text(
+                _currentPosition == null
+                    ? 'Enable location to see nearby reports'
+                    : 'Be the first to report trash in your area!',
+                style: AppTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            if (_currentPosition == null) ...[
+              const SizedBox(height: 32),
+              ScaleInAnimation(
+                delay: const Duration(milliseconds: 400),
+                child: ElevatedButton.icon(
+                  onPressed: _refreshReports,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryEmerald,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    'Enable Location',
+                    style: AppTheme.labelLarge.copyWith(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            ScaleInAnimation(
+              delay: const Duration(milliseconds: 500),
+              child: OutlinedButton.icon(
+                onPressed: _navigateToMapView,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppTheme.primaryEmerald),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: Icon(Icons.map_rounded, color: AppTheme.primaryEmerald),
+                label: Text(
+                  'View on Map',
+                  style: AppTheme.labelLarge.copyWith(
+                    color: AppTheme.primaryEmerald,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildReportCard(TrashReportModel report, int index) {
+  Widget _buildModernReportCard(TrashReportModel report, int index) {
     final distance = _currentPosition != null
         ? Geolocator.distanceBetween(
                 _currentPosition!.latitude,
@@ -410,188 +636,263 @@ class _MapScreenState extends State<MapScreen> {
               1000
         : null;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      child: InkWell(
-        onTap: () => _navigateToReportDetail(report),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  // Type Icon with pulse animation
-                  PulseAnimation(
-                    duration: const Duration(seconds: 2),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Helpers.getSeverityColor(
-                          report.severity,
-                        ).withOpacity(0.1),
-                      ),
-                      child: Icon(
-                        _getTrashTypeIcon(report.trashType),
-                        color: Helpers.getSeverityColor(report.severity),
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Report Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              Helpers.getTrashTypeDisplayName(report.trashType),
-                              style: AppTheme.labelMedium,
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(
-                                  report.status,
-                                ).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _getStatusDisplayName(report.status),
-                                style: AppTheme.bodyMedium.copyWith(
-                                  fontSize: 12,
-                                  color: _getStatusColor(report.status),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowLight,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToReportDetail(report),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Type Icon with pulse animation
+                    PulseAnimation(
+                      duration: const Duration(seconds: 2),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.getSeverityGradient(
+                            report.severity,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.getSeverityColor(
+                                report.severity,
+                              ).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          report.address,
-                          style: AppTheme.bodyMedium.copyWith(fontSize: 13),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Icon(
+                          _getTrashTypeIcon(report.trashType),
+                          color: Colors.white,
+                          size: 28,
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            if (distance != null) ...[
-                              Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: AppTheme.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                Helpers.formatDistance(distance),
-                                style: AppTheme.bodyMedium.copyWith(
-                                  fontSize: 12,
-                                  color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Report Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            Helpers.getTrashTypeDisplayName(report.trashType),
+                            style: AppTheme.titleLarge.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(
+                                    report.status,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _getStatusDisplayName(report.status),
+                                  style: AppTheme.labelSmall.copyWith(
+                                    color: _getStatusColor(report.status),
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.getSeverityColor(
+                                    report.severity,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${report.severity.toUpperCase()} PRIORITY',
+                                  style: AppTheme.labelSmall.copyWith(
+                                    color: AppTheme.getSeverityColor(
+                                      report.severity,
+                                    ),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
                             ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Arrow with bounce animation
+                    SlideInAnimation(
+                      duration: AnimationConstants.mediumDuration,
+                      delay: Duration(
+                        milliseconds:
+                            300 +
+                            (index * AnimationConstants.cardStaggerDelayMs),
+                      ),
+                      beginOffset: const Offset(0.3, 0),
+                      curve: AnimationConstants.bounceCurve,
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: AppTheme.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Location and Details
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 16,
+                            color: AppTheme.primaryEmerald,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              report.address,
+                              style: AppTheme.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          if (distance != null) ...[
                             Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: AppTheme.textSecondary,
+                              Icons.near_me_rounded,
+                              size: 16,
+                              color: AppTheme.textTertiary,
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              Helpers.formatDateTime(report.timestamp),
-                              style: AppTheme.bodyMedium.copyWith(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
-                              ),
+                              Helpers.formatDistance(distance),
+                              style: AppTheme.bodySmall,
                             ),
+                            const SizedBox(width: 16),
                           ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Arrow with bounce animation
-                  SlideInAnimation(
-                    duration: AnimationConstants.mediumDuration,
-                    delay: Duration(
-                      milliseconds:
-                          300 + (index * AnimationConstants.cardStaggerDelayMs),
-                    ),
-                    beginOffset: const Offset(0.3, 0),
-                    curve: AnimationConstants.bounceCurve,
-                    child: Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-
-              // Effort and Safety Warnings
-              if (report.safetyWarnings.isNotEmpty ||
-                  report.estimatedEffort.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                SlideInAnimation(
-                  beginOffset: const Offset(0, 0.1),
-                  delay: Duration(
-                    milliseconds:
-                        200 + (index * AnimationConstants.cardStaggerDelayMs),
-                  ),
-                  child: Row(
-                    children: [
-                      if (report.estimatedEffort.isNotEmpty) ...[
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 16,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          report.estimatedEffort,
-                          style: AppTheme.bodyMedium.copyWith(fontSize: 12),
-                        ),
-                      ],
-                      if (report.safetyWarnings.isNotEmpty) ...[
-                        const SizedBox(width: 16),
-                        PulseAnimation(
-                          duration: const Duration(seconds: 3),
-                          child: Icon(
-                            Icons.warning_amber,
+                          Icon(
+                            Icons.access_time_rounded,
                             size: 16,
-                            color: AppTheme.warningOrange,
+                            color: AppTheme.textTertiary,
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Safety Warning',
-                          style: AppTheme.bodyMedium.copyWith(
-                            fontSize: 12,
-                            color: AppTheme.warningOrange,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(width: 4),
+                          Text(
+                            Helpers.formatDateTime(report.timestamp),
+                            style: AppTheme.bodySmall,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          Icon(
+                            Icons.timer_outlined,
+                            size: 16,
+                            color: AppTheme.textTertiary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            report.estimatedEffort,
+                            style: AppTheme.bodySmall,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
+
+                // Safety Warnings with animation
+                if (report.safetyWarnings.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  SlideInAnimation(
+                    beginOffset: const Offset(0, 0.1),
+                    delay: Duration(
+                      milliseconds:
+                          200 + (index * AnimationConstants.cardStaggerDelayMs),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warningAmber.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.warningAmber.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          PulseAnimation(
+                            duration: const Duration(seconds: 3),
+                            child: Icon(
+                              Icons.warning_amber_rounded,
+                              size: 20,
+                              color: AppTheme.warningAmber,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              report.safetyWarnings.first,
+                              style: AppTheme.bodySmall.copyWith(
+                                color: AppTheme.warningAmber,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -611,31 +912,22 @@ class _MapScreenState extends State<MapScreen> {
   IconData _getTrashTypeIcon(String trashType) {
     switch (trashType) {
       case 'general':
-        return Icons.delete_outline;
+        return Icons.delete_rounded;
       case 'recyclable':
-        return Icons.recycling;
+        return Icons.recycling_rounded;
       case 'hazardous':
-        return Icons.warning;
+        return Icons.warning_rounded;
       case 'large':
-        return Icons.chair;
+        return Icons.chair_rounded;
       case 'organic':
-        return Icons.eco;
+        return Icons.eco_rounded;
       default:
-        return Icons.help_outline;
+        return Icons.help_rounded;
     }
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'verified':
-        return AppTheme.primaryGreen;
-      case 'cleaning':
-        return AppTheme.infoBlue;
-      case 'completed':
-        return AppTheme.primaryGreen;
-      default:
-        return AppTheme.textSecondary;
-    }
+    return AppTheme.getStatusColor(status);
   }
 
   String _getStatusDisplayName(String status) {
