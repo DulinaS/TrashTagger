@@ -1,4 +1,4 @@
-// lib/animations/custom_animations.dart - Enhanced for Modern UI
+// lib/animations/custom_animations.dart - Fixed for Modern UI (No ParentData Issues)
 import 'package:flutter/material.dart';
 import 'animation_constants.dart';
 
@@ -88,7 +88,7 @@ class _SlideInAnimationState extends State<SlideInAnimation>
   }
 }
 
-/// Enhanced staggered animation with better controls
+/// Enhanced staggered animation with better controls - FIXED
 class StaggeredListAnimation extends StatefulWidget {
   final List<Widget> children;
   final Duration itemDelay;
@@ -192,28 +192,48 @@ class _StaggeredListAnimationState extends State<StaggeredListAnimation>
 
   @override
   Widget build(BuildContext context) {
-    final widgets = <Widget>[];
+    // FIXED: Use proper layout widgets instead of problematic combinations
+    if (widget.direction == Axis.horizontal) {
+      return Row(
+        children: widget.children.asMap().entries.map((entry) {
+          final index = entry.key;
+          final child = entry.value;
 
-    for (int i = 0; i < widget.children.length; i++) {
-      widgets.add(
-        AnimatedBuilder(
-          animation: _controllers[i],
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimations[i],
-              child: SlideTransition(
-                position: _slideAnimations[i],
-                child: widget.children[i],
-              ),
-            );
-          },
-        ),
+          return AnimatedBuilder(
+            animation: _controllers[index],
+            builder: (context, _) {
+              return FadeTransition(
+                opacity: _fadeAnimations[index],
+                child: SlideTransition(
+                  position: _slideAnimations[index],
+                  child: child,
+                ),
+              );
+            },
+          );
+        }).toList(),
+      );
+    } else {
+      return Column(
+        children: widget.children.asMap().entries.map((entry) {
+          final index = entry.key;
+          final child = entry.value;
+
+          return AnimatedBuilder(
+            animation: _controllers[index],
+            builder: (context, _) {
+              return FadeTransition(
+                opacity: _fadeAnimations[index],
+                child: SlideTransition(
+                  position: _slideAnimations[index],
+                  child: child,
+                ),
+              );
+            },
+          );
+        }).toList(),
       );
     }
-
-    return widget.direction == Axis.vertical
-        ? Column(children: widgets)
-        : Row(children: widgets);
   }
 }
 

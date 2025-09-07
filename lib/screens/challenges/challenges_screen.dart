@@ -46,7 +46,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     super.dispose();
   }
 
-  Future<void> _loadChallenges() async {
+  /* Future<void> _loadChallenges() async {
     setState(() => _isLoading = true);
 
     try {
@@ -115,6 +115,87 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     }
 
     setState(() => _isLoading = false);
+  }
+ */
+
+  Future<void> _loadChallenges() async {
+    if (!mounted) return; // Check if widget is still mounted
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.user?.uid;
+
+      // Load available challenges
+      final availableSnapshot = await FirebaseFirestore.instance
+          .collection('trashReports')
+          .where('status', isEqualTo: 'verified')
+          .orderBy('timestamp', descending: true)
+          .limit(50)
+          .get();
+
+      if (!mounted) return; // Check again after async operation
+
+      _availableChallenges = availableSnapshot.docs
+          .map((doc) {
+            try {
+              final data = doc.data();
+              if (data['acceptedBy'] == null && data['reporterId'] != userId) {
+                return TrashReportModel.fromMap({
+                  '_documentId': doc.id,
+                  ...data,
+                });
+              }
+              return null;
+            } catch (e) {
+              print('Error parsing report ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((report) => report != null)
+          .cast<TrashReportModel>()
+          .toList();
+
+      // Load my challenges
+      if (userId != null) {
+        final mySnapshot = await FirebaseFirestore.instance
+            .collection('trashReports')
+            .where('acceptedBy', isEqualTo: userId)
+            .orderBy('acceptedAt', descending: true)
+            .limit(20)
+            .get();
+
+        if (!mounted) return; // Check again after second async operation
+
+        _myChallenges = mySnapshot.docs
+            .map((doc) {
+              try {
+                return TrashReportModel.fromMap({
+                  '_documentId': doc.id,
+                  ...doc.data(),
+                });
+              } catch (e) {
+                print('Error parsing my challenge ${doc.id}: $e');
+                return null;
+              }
+            })
+            .where((report) => report != null)
+            .cast<TrashReportModel>()
+            .toList();
+      }
+
+      print(
+        'Loaded ${_availableChallenges.length} available, ${_myChallenges.length} my challenges',
+      );
+    } catch (e) {
+      print('Error loading challenges: $e');
+    }
+
+    // Final mounted check before setState
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _refreshChallenges() async {

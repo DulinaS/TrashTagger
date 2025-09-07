@@ -159,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildModernAppBar(UserModel user) {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 200, // Reduced since no title needed
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -168,9 +168,16 @@ class _ProfileScreenState extends State<ProfileScreen>
         background: Container(
           decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                30,
+                20,
+                20,
+              ), // Adjusted padding
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min, // FIXED: Use min size
                 children: [
                   // Profile Avatar with Animation
                   AnimatedBuilder(
@@ -179,16 +186,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                       return Transform.scale(
                         scale: 1.0 + (_avatarController.value * 0.05),
                         child: Container(
-                          width: 100,
-                          height: 100,
+                          width: 80,
+                          height: 80,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
+                            border: Border.all(color: Colors.white, width: 3),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.2),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
@@ -207,37 +214,52 @@ class _ProfileScreenState extends State<ProfileScreen>
                       );
                     },
                   ),
-                  const SizedBox(height: 16),
-
-                  // User Name and Level
+                  const SizedBox(height: 10), // Reduced spacing
+                  // User Name
                   Text(
                     user.name,
                     style: AppTheme.headlineLarge.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
+                      fontSize: 22,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6), // Reduced spacing
+                  // Level and Points Badge
                   Container(
+                    constraints: BoxConstraints(maxWidth: 280),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                      horizontal: 27,
+                      vertical: 2, // Reduced padding
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(
+                        18,
+                      ), // Slightly reduced
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Level ${user.level} • ${Helpers.formatPoints(user.totalPoints)} points',
-                          style: AppTheme.labelLarge.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                        Icon(
+                          Icons.star_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ), // Smaller icon
+                        const SizedBox(width: 4), // Reduced spacing
+                        Flexible(
+                          child: Text(
+                            'Level ${user.level} • ${Helpers.formatPoints(user.totalPoints)} pts',
+                            style: AppTheme.labelLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12, // Smaller font
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -248,14 +270,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         ),
-        title: Text(
-          'Profile',
-          style: AppTheme.titleLarge.copyWith(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
+        // REMOVED: title parameter since you don't want the 'Profile' title
+        collapseMode: CollapseMode.parallax, // Changed since no title to pin
       ),
       actions: [
         Padding(
@@ -300,37 +316,46 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildStatsOverview(UserModel user) {
-    return StaggeredListAnimation(
-      direction: Axis.horizontal,
-      itemDelay: const Duration(milliseconds: 100),
+    return Row(
       children: [
-        _buildStatCard(
-          'Reports',
-          user.stats.reportsSubmitted.toString(),
-          Icons.report_rounded,
-          AppTheme.primaryTeal,
-          LinearGradient(colors: [AppTheme.primaryTeal, AppTheme.infoBlue]),
+        Expanded(
+          child: _buildStatCard(
+            'Reports',
+            user.stats.reportsSubmitted.toString(),
+            Icons.report_rounded,
+            AppTheme.primaryTeal,
+            LinearGradient(colors: [AppTheme.primaryTeal, AppTheme.infoBlue]),
+          ),
         ),
-        _buildStatCard(
-          'Cleanups',
-          user.stats.challengesCompleted.toString(),
-          Icons.cleaning_services_rounded,
-          AppTheme.primaryEmerald,
-          AppTheme.successGradient,
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            'Cleanups',
+            user.stats.challengesCompleted.toString(),
+            Icons.cleaning_services_rounded,
+            AppTheme.primaryEmerald,
+            AppTheme.successGradient,
+          ),
         ),
-        _buildStatCard(
-          'Badges',
-          user.badges.length.toString(),
-          Icons.military_tech_rounded,
-          AppTheme.accentAmber,
-          AppTheme.warningGradient,
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            'Badges',
+            user.badges.length.toString(),
+            Icons.military_tech_rounded,
+            AppTheme.accentAmber,
+            AppTheme.warningGradient,
+          ),
         ),
-        _buildStatCard(
-          'Streak',
-          user.stats.weeklyStreak.toString(),
-          Icons.local_fire_department_rounded,
-          AppTheme.accentCoral,
-          LinearGradient(colors: [AppTheme.accentCoral, AppTheme.errorRed]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            'Streak',
+            user.stats.weeklyStreak.toString(),
+            Icons.local_fire_department_rounded,
+            AppTheme.accentCoral,
+            LinearGradient(colors: [AppTheme.accentCoral, AppTheme.errorRed]),
+          ),
         ),
       ],
     );
@@ -343,54 +368,58 @@ class _ProfileScreenState extends State<ProfileScreen>
     Color color,
     LinearGradient gradient,
   ) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundSecondary,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppTheme.borderLight),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: gradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: AppTheme.titleLarge.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: AppTheme.headlineMedium.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            Text(
-              label,
-              style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -514,7 +543,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.3,
+          childAspectRatio: 1.0, // Decreased from 1.3 to give more height
           children: [
             _buildActionCard(
               'View Badges',
@@ -580,39 +609,57 @@ class _ProfileScreenState extends State<ProfileScreen>
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16), // Reduced from 20
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min, // FIXED: Use min size
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 40, // Reduced from 48
+                  height: 40, // Reduced from 48
                   decoration: BoxDecoration(
                     gradient: gradient,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12), // Reduced from 14
                     boxShadow: [
                       BoxShadow(
                         color: gradient.colors.first.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
+                        blurRadius: 6, // Reduced from 8
+                        offset: const Offset(0, 3), // Reduced from 4
                       ),
                     ],
                   ),
-                  child: Icon(icon, color: Colors.white, size: 24),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 20,
+                  ), // Reduced from 24
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: AppTheme.titleMedium.copyWith(
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 8), // Reduced from 12
+                Flexible(
+                  // FIXED: Use Flexible for title
+                  child: Text(
+                    title,
+                    style: AppTheme.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14, // Reduced font size
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTheme.bodySmall,
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 2), // Reduced from 4
+                Flexible(
+                  // FIXED: Use Flexible for subtitle
+                  child: Text(
+                    subtitle,
+                    style: AppTheme.bodySmall.copyWith(
+                      fontSize: 11, // Reduced font size
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -737,32 +784,46 @@ class _ProfileScreenState extends State<ProfileScreen>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: badgeInfo['color'].withOpacity(0.3)),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  badgeInfo['color'],
-                  badgeInfo['color'].withOpacity(0.8),
-                ],
+      child: Padding(
+        padding: const EdgeInsets.all(8), // Reduced padding
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // FIXED: Use min size
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 28, // Reduced from 32
+              height: 28, // Reduced from 32
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    badgeInfo['color'],
+                    badgeInfo['color'].withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8), // Reduced from 10
               ),
-              borderRadius: BorderRadius.circular(10),
+              child: Icon(
+                badgeInfo['icon'],
+                size: 16,
+                color: Colors.white,
+              ), // Reduced size
             ),
-            child: Icon(badgeInfo['icon'], size: 18, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            badgeInfo['name'],
-            style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 6), // Reduced spacing
+            Flexible(
+              // FIXED: Use Flexible instead of fixed spacing
+              child: Text(
+                badgeInfo['name'],
+                style: AppTheme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11, // Slightly smaller font
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -896,10 +957,11 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           const SizedBox(width: 12),
 
-          // Name and Level
+          // Name and Level - FIXED OVERFLOW
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   user.name,
@@ -911,14 +973,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text('Level ${user.level}', style: AppTheme.bodySmall),
+                Text(
+                  'Level ${user.level}',
+                  style: AppTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
 
-          // Points
+          // Points - FIXED OVERFLOW
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 Helpers.formatPoints(user.totalPoints),
@@ -926,17 +993,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                   color: AppTheme.primaryEmerald,
                   fontWeight: FontWeight.w700,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
-              Text('points', style: AppTheme.bodySmall),
+              Text(
+                'points',
+                style: AppTheme.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
 
-          if (isCurrentUser)
+          if (isCurrentUser) ...[
+            const SizedBox(width: 8),
             Icon(
               Icons.person_rounded,
               color: AppTheme.primaryEmerald,
               size: 20,
             ),
+          ],
         ],
       ),
     );
