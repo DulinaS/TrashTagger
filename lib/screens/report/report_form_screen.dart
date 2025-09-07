@@ -1013,7 +1013,7 @@ class _ReportFormScreenState extends State<ReportFormScreen>
           builder: (context) => LocationPickerScreen(
             initialLocation: _selectedLocation,
             initialAddress: _selectedAddress,
-            title: 'Where did you find this trash?',
+            title: 'Trash Location?',
           ),
         ),
       );

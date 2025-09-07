@@ -99,10 +99,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
     _getCurrentLocationOptional();
   }
 
+  // Improved location_picker_screen.dart methods
+  // Replace the build method and overlay methods
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
+      resizeToAvoidBottomInset:
+          false, // Prevent keyboard from resizing the entire screen
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [_buildModernAppBar()];
@@ -110,38 +115,626 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
         body: Stack(
           children: [
             // Google Map
-            SlideInAnimation(
-              delay: AnimationConstants.microDelay,
-              child: _buildMap(),
+            Positioned.fill(
+              child: SlideInAnimation(
+                delay: AnimationConstants.microDelay,
+                child: _buildMap(),
+              ),
             ),
 
             // Search Bar Overlay
-            SlideInAnimation(
-              beginOffset: AnimationConstants.slideFromTop,
-              delay: AnimationConstants.shortDelay,
-              child: _buildSearchBarOverlay(),
-            ),
+            _buildSearchBarOverlay(),
 
-            // Quick Locations
-            SlideInAnimation(
-              beginOffset: const Offset(-0.3, 0),
-              delay: AnimationConstants.mediumDelay,
-              child: _buildQuickLocationsOverlay(),
-            ),
+            // Current Location FAB - Better positioned
+            _buildLocationFAB(),
 
-            // Address Display Bottom Sheet
-            SlideInAnimation(
-              beginOffset: AnimationConstants.slideFromBottom,
-              delay: AnimationConstants.longDelay,
-              child: _buildAddressBottomSheet(),
-            ),
-
-            // FAB for current location
-            ScaleInAnimation(
-              delay: AnimationConstants.extraLongDelay,
-              child: _buildLocationFAB(),
-            ),
+            // Address Display Bottom Sheet - Keyboard aware
+            _buildKeyboardAwareBottomSheet(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBarOverlay() {
+    return Positioned(
+      top: 20,
+      left: 20,
+      right: 20,
+      child: SlideInAnimation(
+        beginOffset: AnimationConstants.slideFromTop,
+        delay: AnimationConstants.shortDelay,
+        child: ModernCard(
+          padding: EdgeInsets.zero,
+          enableGlassmorphism: true,
+          child: GooglePlaceAutoCompleteTextField(
+            textEditingController: _searchController,
+            googleAPIKey: ApiKeys.googlePlacesApiKey,
+            inputDecoration: InputDecoration(
+              labelText: 'Search for location',
+              hintText: 'Enter address, landmark, or area',
+              prefixIcon: Container(
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryEmerald.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.search_rounded,
+                  color: AppTheme.primaryEmerald,
+                  size: 20,
+                ),
+              ),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.clear_rounded,
+                        color: AppTheme.textSecondary,
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
+            ),
+            debounceTime: 600,
+            countries: ["lk"],
+            isLatLngRequired: true,
+            getPlaceDetailWithLatLng: (Prediction prediction) {
+              if (prediction.lat != null && prediction.lng != null) {
+                final location = LatLng(
+                  double.parse(prediction.lat!),
+                  double.parse(prediction.lng!),
+                );
+                _moveToLocation(location, prediction.description ?? '');
+              }
+            },
+            itemClick: (Prediction prediction) {
+              _searchController.text = prediction.description ?? '';
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationFAB() {
+    return Positioned(
+      top: 120, // Positioned below search bar instead of bottom
+      right: 20,
+      child: ScaleInAnimation(
+        delay: AnimationConstants.extraLongDelay,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: _isLoadingLocation
+                ? LinearGradient(
+                    colors: [AppTheme.textSecondary, AppTheme.borderMedium],
+                  )
+                : LinearGradient(
+                    colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                  ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    (_isLoadingLocation
+                            ? AppTheme.textSecondary
+                            : AppTheme.infoBlue)
+                        .withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isLoadingLocation ? null : _getCurrentLocationOptional,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: _isLoadingLocation
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.my_location_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeyboardAwareBottomSheet() {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = keyboardHeight > 0;
+
+    if (isKeyboardOpen) {
+      return _buildFloatingMiniCard();
+    } else {
+      return _buildFullBottomSheet();
+    }
+  }
+
+  Widget _buildFloatingMiniCard() {
+    return Positioned(
+      top: 180, // Position below search bar and FAB
+      left: 20,
+      right: 20,
+      child: SlideInAnimation(
+        beginOffset: const Offset(0, -30),
+        delay: const Duration(milliseconds: 100),
+        child: ModernCard(
+          padding: EdgeInsets.zero,
+          enableGlassmorphism: true,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Location icon with gradient background
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Address text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _selectedAddress.isEmpty
+                            ? 'No location selected'
+                            : 'Selected Location',
+                        style: AppTheme.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      if (_selectedAddress.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _selectedAddress,
+                          style: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Action buttons
+                if (_selectedAddress.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  // Expand button
+                  GestureDetector(
+                    onTap: () {
+                      // Dismiss keyboard and show full bottom sheet
+                      FocusScope.of(context).unfocus();
+                      Future.delayed(const Duration(milliseconds: 300), () {
+                        _showLocationDetailsModal();
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundSecondary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Confirm button
+                  GestureDetector(
+                    onTap: _confirmLocation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryEmerald.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Confirm',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Hint when no location selected
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundSecondary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Tap map',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullBottomSheet() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: SlideInAnimation(
+        beginOffset: AnimationConstants.slideFromBottom,
+        delay: AnimationConstants.longDelay,
+        child: Container(
+          margin: const EdgeInsets.all(20),
+          child: ModernCard(
+            borderRadius: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.textTertiary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Selected Location',
+                              style: AppTheme.titleMedium.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (_isLoadingAddress) ...[
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryEmerald,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Address container
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.backgroundPrimary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedAddress.isEmpty
+                                  ? 'Tap on map or search to select location'
+                                  : _selectedAddress,
+                              style: AppTheme.bodyLarge.copyWith(
+                                color: _selectedAddress.isEmpty
+                                    ? AppTheme.textSecondary
+                                    : AppTheme.textPrimary,
+                                fontWeight: _selectedAddress.isEmpty
+                                    ? FontWeight.normal
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                            if (_selectedAddress.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Lat: ${_selectedLocation.latitude.toStringAsFixed(6)}, '
+                                'Lng: ${_selectedLocation.longitude.toStringAsFixed(6)}',
+                                style: AppTheme.bodySmall.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+                      ModernGradientButton(
+                        text: 'Confirm',
+                        onPressed: _selectedAddress.isNotEmpty
+                            ? _confirmLocation
+                            : null,
+                        icon: Icons.check_circle_rounded,
+                        gradient: AppTheme.primaryGradient,
+                        width: double.infinity,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Modal for showing full details when expanding from mini card
+  void _showLocationDetailsModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20,
+          right: 20,
+          top: 100,
+        ),
+        child: ModernCard(
+          borderRadius: 24,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.textTertiary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Location Details',
+                              style: AppTheme.titleMedium.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Full address display
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.backgroundPrimary,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.borderLight,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.place_rounded,
+                                  size: 16,
+                                  color: AppTheme.primaryEmerald,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Address',
+                                  style: AppTheme.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _selectedAddress.isEmpty
+                                  ? 'No address available'
+                                  : _selectedAddress,
+                              style: AppTheme.bodyLarge.copyWith(
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.my_location_rounded,
+                                  size: 16,
+                                  color: AppTheme.primaryTeal,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Coordinates',
+                                  style: AppTheme.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Lat: ${_selectedLocation.latitude.toStringAsFixed(6)}\n'
+                              'Lng: ${_selectedLocation.longitude.toStringAsFixed(6)}',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ModernGradientButton(
+                              text: 'Edit',
+                              onPressed: () {
+                                Navigator.pop(context);
+                                // Focus back on search or map
+                              },
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppTheme.textSecondary,
+                                  const Color.fromARGB(255, 121, 122, 124),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ModernGradientButton(
+                              text: 'Confirm',
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _confirmLocation();
+                              },
+                              gradient: AppTheme.primaryGradient,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -149,7 +742,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 80,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -195,166 +788,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
     );
   }
 
-  Widget _buildSearchBarOverlay() {
-    return Positioned(
-      top: 20,
-      left: 20,
-      right: 20,
-      child: ModernCard(
-        padding: EdgeInsets.zero,
-        enableGlassmorphism: true,
-        child: GooglePlaceAutoCompleteTextField(
-          textEditingController: _searchController,
-          googleAPIKey: ApiKeys.googlePlacesApiKey,
-          inputDecoration: InputDecoration(
-            labelText: 'Search for location',
-            hintText: 'Enter address, landmark, or area',
-            prefixIcon: Container(
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryEmerald.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.search_rounded,
-                color: AppTheme.primaryEmerald,
-                size: 20,
-              ),
-            ),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(
-                      Icons.clear_rounded,
-                      color: AppTheme.textSecondary,
-                    ),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                  )
-                : null,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-          ),
-          debounceTime: 600,
-          countries: ["lk"],
-          isLatLngRequired: true,
-          getPlaceDetailWithLatLng: (Prediction prediction) {
-            if (prediction.lat != null && prediction.lng != null) {
-              final location = LatLng(
-                double.parse(prediction.lat!),
-                double.parse(prediction.lng!),
-              );
-              _moveToLocation(location, prediction.description ?? '');
-            }
-          },
-          itemClick: (Prediction prediction) {
-            _searchController.text = prediction.description ?? '';
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickLocationsOverlay() {
-    final quickLocations = [
-      {
-        'name': 'Galle Face',
-        'location': LatLng(6.9246, 79.8442),
-        'icon': Icons.beach_access_rounded,
-        'gradient': AppTheme.primaryGradient,
-      },
-      {
-        'name': 'Viharamahadevi Park',
-        'location': LatLng(6.9147, 79.8610),
-        'icon': Icons.park_rounded,
-        'gradient': AppTheme.successGradient,
-      },
-      {
-        'name': 'Colombo Fort',
-        'location': LatLng(6.9344, 79.8428),
-        'icon': Icons.location_city_rounded,
-        'gradient': LinearGradient(
-          colors: [AppTheme.accentPurple, AppTheme.accentCoral],
-        ),
-      },
-      {
-        'name': 'Mount Lavinia',
-        'location': LatLng(6.8344, 79.8631),
-        'icon': Icons.waves_rounded,
-        'gradient': LinearGradient(
-          colors: [AppTheme.primaryTeal, AppTheme.infoBlue],
-        ),
-      },
-    ];
-
-    return Positioned(
-      top: 100,
-      left: 20,
-      right: 20,
-      child: Container(
-        height: 80,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          itemCount: quickLocations.length,
-          itemBuilder: (context, index) {
-            final location = quickLocations[index];
-
-            return ScaleInAnimation(
-              delay: Duration(milliseconds: 100 + (index * 50)),
-              child: Container(
-                width: 120,
-                margin: const EdgeInsets.only(right: 12),
-                child: ModernCard(
-                  onTap: () {
-                    _moveToLocation(
-                      location['location'] as LatLng,
-                      location['name'] as String,
-                    );
-                  },
-                  padding: const EdgeInsets.all(12),
-                  enableGlassmorphism: true,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: location['gradient'] as LinearGradient,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          location['icon'] as IconData,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        location['name'] as String,
-                        style: AppTheme.labelSmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildMap() {
     return GoogleMap(
       initialCameraPosition: CameraPosition(
@@ -366,6 +799,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
         _updateMarker(_selectedLocation);
       },
       onTap: (LatLng location) {
+        FocusScope.of(context).unfocus();
         _selectLocation(location);
       },
       markers: _markers,
@@ -388,181 +822,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
           }
         ]
       ''',
-    );
-  }
-
-  Widget _buildAddressBottomSheet() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: ModernCard(
-        margin: const EdgeInsets.all(20),
-        borderRadius: 24,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 20),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.textTertiary,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.location_on_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Selected Location',
-                        style: AppTheme.titleMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (_isLoadingAddress) ...[
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.primaryEmerald,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.backgroundPrimary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedAddress.isEmpty
-                              ? 'Tap on map or search to select location'
-                              : _selectedAddress,
-                          style: AppTheme.bodyLarge.copyWith(
-                            color: _selectedAddress.isEmpty
-                                ? AppTheme.textSecondary
-                                : AppTheme.textPrimary,
-                            fontWeight: _selectedAddress.isEmpty
-                                ? FontWeight.normal
-                                : FontWeight.w500,
-                          ),
-                        ),
-                        if (_selectedAddress.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'Lat: ${_selectedLocation.latitude.toStringAsFixed(6)}, '
-                            'Lng: ${_selectedLocation.longitude.toStringAsFixed(6)}',
-                            style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.textSecondary,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  ModernGradientButton(
-                    text: 'Confirm Location',
-                    onPressed: _selectedAddress.isNotEmpty
-                        ? _confirmLocation
-                        : null,
-                    icon: Icons.check_circle_rounded,
-                    gradient: AppTheme.primaryGradient,
-                    width: double.infinity,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocationFAB() {
-    return Positioned(
-      bottom: 200,
-      right: 20,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: _isLoadingLocation
-              ? LinearGradient(
-                  colors: [AppTheme.textSecondary, AppTheme.borderMedium],
-                )
-              : LinearGradient(
-                  colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
-                ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  (_isLoadingLocation
-                          ? AppTheme.textSecondary
-                          : AppTheme.infoBlue)
-                      .withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _isLoadingLocation ? null : _getCurrentLocationOptional,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: _isLoadingLocation
-                  ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Icon(
-                      Icons.my_location_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 

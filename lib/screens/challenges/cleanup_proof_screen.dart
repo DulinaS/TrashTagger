@@ -1005,7 +1005,7 @@ class _CleanupProofScreenState extends State<CleanupProofScreen>
               children: [
                 Expanded(
                   child: ModernGradientButton(
-                    text: 'Take Photo',
+                    text: 'Capture',
                     onPressed: _takePhoto,
                     icon: Icons.camera_alt_rounded,
                     gradient: AppTheme.primaryGradient,
@@ -1014,7 +1014,7 @@ class _CleanupProofScreenState extends State<CleanupProofScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: ModernGradientButton(
-                    text: 'From Gallery',
+                    text: 'Gallery',
                     onPressed: _pickFromGallery,
                     icon: Icons.photo_library_rounded,
                     isOutlined: true,

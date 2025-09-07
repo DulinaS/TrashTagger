@@ -131,19 +131,11 @@ class _CameraScreenState extends State<CameraScreen>
         // Modern App Bar
         _buildModernAppBar(),
 
-        // Top Information Bar
-        SlideInAnimation(
-          beginOffset: AnimationConstants.slideFromTop,
-          delay: AnimationConstants.shortDelay,
-          child: _buildTopInfoBar(),
-        ),
+        // Top Information Bar - Animation moved inside Positioned
+        _buildTopInfoBar(),
 
-        // Bottom Controls
-        SlideInAnimation(
-          beginOffset: AnimationConstants.slideFromBottom,
-          delay: AnimationConstants.mediumDelay,
-          child: _buildBottomControls(),
-        ),
+        // Bottom Controls - Animation moved inside Positioned
+        _buildBottomControls(),
 
         // Loading Overlay
         if (_isLoading) _buildLoadingOverlay(),
@@ -287,59 +279,63 @@ class _CameraScreenState extends State<CameraScreen>
       top: 120,
       left: 20,
       right: 20,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.black.withOpacity(0.8),
-              Colors.black.withOpacity(0.6),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.camera_enhance_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Point your camera at trash',
-                        style: AppTheme.titleMedium.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'You\'ll select the exact location on the next screen',
-                        style: AppTheme.bodySmall.copyWith(
-                          color: Colors.white.withOpacity(0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      child: SlideInAnimation(
+        beginOffset: AnimationConstants.slideFromTop,
+        delay: AnimationConstants.shortDelay,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.black.withOpacity(0.8),
+                Colors.black.withOpacity(0.6),
               ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.camera_enhance_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Point your camera at trash',
+                          style: AppTheme.titleMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'You\'ll select the exact location on the next screen',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -350,77 +346,81 @@ class _CameraScreenState extends State<CameraScreen>
       bottom: 0,
       left: 0,
       right: 0,
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withOpacity(0.9),
-              Colors.black.withOpacity(0.6),
-              Colors.transparent,
-            ],
+      child: SlideInAnimation(
+        beginOffset: AnimationConstants.slideFromBottom,
+        delay: AnimationConstants.mediumDelay,
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                Colors.black.withOpacity(0.9),
+                Colors.black.withOpacity(0.6),
+                Colors.transparent,
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Gallery Button
-                  ScaleInAnimation(
-                    delay: AnimationConstants.microDelay,
-                    child: _buildControlButton(
-                      icon: Icons.photo_library_rounded,
-                      onPressed: _pickFromGallery,
-                      gradient: LinearGradient(
-                        colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Gallery Button
+                    ScaleInAnimation(
+                      delay: AnimationConstants.microDelay,
+                      child: _buildControlButton(
+                        icon: Icons.photo_library_rounded,
+                        onPressed: _pickFromGallery,
+                        gradient: LinearGradient(
+                          colors: [AppTheme.accentPurple, AppTheme.accentCoral],
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Capture Button
-                  ScaleInAnimation(
-                    delay: AnimationConstants.shortDelay,
-                    child: _buildCaptureButton(),
-                  ),
+                    // Capture Button
+                    ScaleInAnimation(
+                      delay: AnimationConstants.shortDelay,
+                      child: _buildCaptureButton(),
+                    ),
 
-                  // Switch Camera Button
-                  ScaleInAnimation(
-                    delay: AnimationConstants.mediumDelay,
-                    child: _buildControlButton(
-                      icon: Icons.flip_camera_ios_rounded,
-                      onPressed: _switchCamera,
-                      gradient: LinearGradient(
-                        colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                    // Switch Camera Button
+                    ScaleInAnimation(
+                      delay: AnimationConstants.mediumDelay,
+                      child: _buildControlButton(
+                        icon: Icons.flip_camera_ios_rounded,
+                        onPressed: _switchCamera,
+                        gradient: LinearGradient(
+                          colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                        ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: Text(
-                  'Tap to capture or select from gallery',
-                  style: AppTheme.bodySmall.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                    fontWeight: FontWeight.w500,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  ),
+                  child: Text(
+                    'Tap to capture or select from gallery',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1041,7 +1041,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.white),
                 const SizedBox(width: 12),
-                const Text('Challenge accepted! Good luck with the cleanup.'),
+                const Text('Challenge accepted! Good luck.'),
               ],
             ),
             backgroundColor: AppTheme.primaryEmerald,
