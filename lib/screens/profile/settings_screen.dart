@@ -132,7 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 100,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,

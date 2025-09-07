@@ -10,7 +10,6 @@ import '../../themes/app_theme.dart';
 import '../../models/trash_report_model.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
-import '../../widgets/common/empty_state_widget.dart';
 import '../../animations/custom_animations.dart';
 import '../../animations/animation_constants.dart';
 

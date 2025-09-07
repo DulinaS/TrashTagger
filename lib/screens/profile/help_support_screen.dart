@@ -132,11 +132,28 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [_buildModernAppBar()];
         },
-        body: TabBarView(
-          controller: _tabController,
-          children: [_buildFAQTab(), _buildContactTab(), _buildMessagesTab()],
-        ),
+        body: _buildBody(),
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+        // Animated Tab Bar
+        SlideInAnimation(
+          delay: AnimationConstants.mediumDelay,
+          child: _buildAnimatedTabBar(),
+        ),
+        // Tab Content
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [_buildFAQTab(), _buildContactTab(), _buildMessagesTab()],
+          ),
+        ),
+      ],
     );
   }
 
@@ -185,40 +202,102 @@ class _HelpSupportScreenState extends State<HelpSupportScreen>
         ),
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
-      bottom: TabBar(
+    );
+  }
+
+  // Animated Tab Bar method
+  Widget _buildAnimatedTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.infoBlue.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
         controller: _tabController,
-        indicatorColor: AppTheme.infoBlue,
         labelColor: AppTheme.infoBlue,
-        unselectedLabelColor: AppTheme.textSecondary,
+        unselectedLabelColor: AppTheme.textTertiary,
+        labelStyle: AppTheme.labelMedium.copyWith(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: AppTheme.labelMedium,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.infoBlue.withOpacity(0.1),
+              AppTheme.primaryTeal.withOpacity(0.05),
+            ],
+          ),
+        ),
+        indicatorPadding: const EdgeInsets.all(2),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
         tabs: [
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.help_outline_rounded, size: 18),
-                const SizedBox(width: 8),
-                Text('FAQ'),
-              ],
+          Container(
+            height: 48,
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.help_outline_rounded, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'FAQ',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.email_outlined, size: 18),
-                const SizedBox(width: 8),
-                Text('Contact'),
-              ],
+          Container(
+            height: 48,
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.email_outlined, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Contact',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.message_outlined, size: 18),
-                const SizedBox(width: 8),
-                Text('Messages'),
-              ],
+          Container(
+            height: 48,
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.message_outlined, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Chat Log',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

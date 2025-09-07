@@ -751,6 +751,7 @@ class ModernStatusBadge extends StatelessWidget {
 }
 
 /// Modern empty state widget
+/// Modern empty state widget - FIXED OVERFLOW ISSUE
 class ModernEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -771,68 +772,112 @@ class ModernEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleInAnimation(
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  gradient: gradient ?? AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (gradient?.colors.first ?? AppTheme.primaryEmerald)
-                          .withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate available space and adjust component sizes accordingly
+        final availableHeight = constraints.maxHeight;
+        final availableWidth = constraints.maxWidth;
+
+        // Scale components based on available space
+        final isCompact = availableHeight < 400;
+        final iconSize = isCompact ? 80.0 : 120.0;
+        final iconRadius = isCompact ? 20.0 : 30.0;
+        final spacing = isCompact ? 16.0 : 32.0;
+        final smallSpacing = isCompact ? 8.0 : 12.0;
+
+        return Center(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: availableHeight > 0 ? availableHeight * 0.6 : 300,
+                maxWidth: availableWidth > 0 ? availableWidth - 80 : 300,
+              ),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: EdgeInsets.all(isCompact ? 20.0 : 40.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ScaleInAnimation(
+                        child: Container(
+                          width: iconSize,
+                          height: iconSize,
+                          decoration: BoxDecoration(
+                            gradient: gradient ?? AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(iconRadius),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (gradient?.colors.first ??
+                                            AppTheme.primaryEmerald)
+                                        .withOpacity(0.3),
+                                blurRadius: isCompact ? 12 : 20,
+                                offset: Offset(0, isCompact ? 4 : 8),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            icon,
+                            size: isCompact ? 40 : 60,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: spacing),
+                      SlideInAnimation(
+                        beginOffset: const Offset(0, 0.2),
+                        delay: const Duration(milliseconds: 200),
+                        child: Text(
+                          title,
+                          style:
+                              (isCompact
+                                      ? AppTheme.titleLarge
+                                      : AppTheme.headlineMedium)
+                                  .copyWith(fontWeight: FontWeight.w700),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(height: smallSpacing),
+                      SlideInAnimation(
+                        beginOffset: const Offset(0, 0.2),
+                        delay: const Duration(milliseconds: 300),
+                        child: Text(
+                          message,
+                          style: isCompact
+                              ? AppTheme.bodySmall
+                              : AppTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (actionText != null && onAction != null) ...[
+                        SizedBox(height: spacing),
+                        ScaleInAnimation(
+                          delay: const Duration(milliseconds: 400),
+                          child: ModernGradientButton(
+                            text: actionText!,
+                            onPressed: onAction,
+                            icon: Icons.add_rounded,
+                            gradient: gradient ?? AppTheme.primaryGradient,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isCompact ? 16 : 24,
+                              vertical: isCompact ? 12 : 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Icon(icon, size: 60, color: Colors.white),
               ),
             ),
-            const SizedBox(height: 32),
-            SlideInAnimation(
-              beginOffset: const Offset(0, 0.2),
-              delay: const Duration(milliseconds: 200),
-              child: Text(
-                title,
-                style: AppTheme.headlineMedium.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SlideInAnimation(
-              beginOffset: const Offset(0, 0.2),
-              delay: const Duration(milliseconds: 300),
-              child: Text(
-                message,
-                style: AppTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            if (actionText != null && onAction != null) ...[
-              const SizedBox(height: 32),
-              ScaleInAnimation(
-                delay: const Duration(milliseconds: 400),
-                child: ModernGradientButton(
-                  text: actionText!,
-                  onPressed: onAction,
-                  icon: Icons.add_rounded,
-                  gradient: gradient ?? AppTheme.primaryGradient,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
