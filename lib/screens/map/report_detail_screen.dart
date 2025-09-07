@@ -228,7 +228,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 80,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -251,7 +251,9 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryTeal, AppTheme.accentPurple],
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(

@@ -1,4 +1,4 @@
-// lib/screens/challenges/challenges_screen.dart - Modern Vibrant Design
+// lib/screens/challenges/challenges_screen.dart - Fixed with Proper UI Pattern
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -140,6 +140,12 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               child: _buildStatsHeader(),
             ),
 
+            // Animated Tab Bar
+            SlideInAnimation(
+              delay: AnimationConstants.mediumDelay,
+              child: _buildAnimatedTabBar(),
+            ),
+
             // Tab Content
             Expanded(
               child: _isLoading
@@ -160,7 +166,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -224,28 +230,75 @@ class _ChallengesScreenState extends State<ChallengesScreen>
           ),
         ),
       ],
-      bottom: TabBar(
+    );
+  }
+
+  Widget _buildAnimatedTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
         controller: _tabController,
         labelColor: AppTheme.primaryEmerald,
         unselectedLabelColor: AppTheme.textTertiary,
-        labelStyle: AppTheme.labelLarge.copyWith(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: AppTheme.labelLarge,
+        labelStyle: AppTheme.labelMedium.copyWith(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: AppTheme.labelMedium,
         indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: AppTheme.primaryEmerald.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          gradient: AppTheme.primaryGradient.scale(0.1),
         ),
-        indicatorPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 8,
-        ),
+        indicatorPadding: const EdgeInsets.all(2),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
         tabs: [
-          Tab(
-            text: 'Available (${_availableChallenges.length})',
-            icon: Icon(Icons.search_rounded, size: 20),
+          Container(
+            height: 48, // Set fixed height for proper coverage
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_rounded, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Available (${_availableChallenges.length})',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Tab(
-            text: 'My Challenges (${_myChallenges.length})',
-            icon: Icon(Icons.assignment_rounded, size: 20),
+          Container(
+            height: 48, // Set fixed height for proper coverage
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.assignment_rounded, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'My Challenges (${_myChallenges.length})',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -343,7 +396,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     return RefreshIndicator(
       onRefresh: _refreshChallenges,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         itemCount: _availableChallenges.length,
         itemBuilder: (context, index) {
           return SlideInAnimation(
@@ -375,7 +428,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     return RefreshIndicator(
       onRefresh: _refreshChallenges,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         itemCount: _myChallenges.length,
         itemBuilder: (context, index) {
           return SlideInAnimation(
@@ -515,6 +568,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                     ),
                     const SizedBox(width: 16),
                     Expanded(
+                      flex: 2,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -525,9 +579,13 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                             style: AppTheme.titleLarge.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                           const SizedBox(height: 4),
-                          Row(
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -550,8 +608,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                   ),
                                 ),
                               ),
-                              if (!isAvailable) ...[
-                                const SizedBox(width: 8),
+                              if (!isAvailable)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -571,7 +628,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                     ),
                                   ),
                                 ),
-                              ],
                             ],
                           ),
                         ],
@@ -592,6 +648,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                         ],
                       ),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             '${_getRewardPoints(challenge.severity)}',
@@ -664,9 +721,12 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                             color: AppTheme.textTertiary,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            challenge.estimatedEffort,
-                            style: AppTheme.bodySmall,
+                          Expanded(
+                            child: Text(
+                              challenge.estimatedEffort,
+                              style: AppTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -716,7 +776,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () =>
                               _navigateToChallengeDetail(challenge),
                           style: OutlinedButton.styleFrom(
@@ -726,16 +786,26 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          icon: Icon(
-                            Icons.info_outline_rounded,
-                            size: 18,
-                            color: AppTheme.primaryEmerald,
-                          ),
-                          label: Text(
-                            'View Details',
-                            style: AppTheme.labelMedium.copyWith(
-                              color: AppTheme.primaryEmerald,
-                            ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                size: 18,
+                                color: AppTheme.primaryEmerald,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'View Details',
+                                  style: AppTheme.labelMedium.copyWith(
+                                    color: AppTheme.primaryEmerald,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -764,6 +834,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
                                       Icons.volunteer_activism_rounded,
@@ -771,11 +842,14 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                       color: Colors.white,
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'Accept Challenge',
-                                      style: AppTheme.labelMedium.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
+                                    Flexible(
+                                      child: Text(
+                                        'Accept Challenge',
+                                        style: AppTheme.labelMedium.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
@@ -819,6 +893,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.camera_alt_rounded,
@@ -826,13 +901,16 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                                 color: Colors.white,
                               ),
                               const SizedBox(width: 12),
-                              Text(
-                                challenge.status == 'disputed'
-                                    ? 'Resubmit Cleanup Proof'
-                                    : 'Submit Cleanup Proof',
-                                style: AppTheme.titleMedium.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  challenge.status == 'disputed'
+                                      ? 'Resubmit Cleanup Proof'
+                                      : 'Submit Cleanup Proof',
+                                  style: AppTheme.titleMedium.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
