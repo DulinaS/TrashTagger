@@ -447,7 +447,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 80,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -488,17 +488,6 @@ class _EditProfileScreenState extends State<EditProfileScreen>
         ),
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
-      actions: [
-        if (!_isLoading)
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: ModernGradientButton(
-              text: 'SAVE',
-              onPressed: _saveProfile,
-              gradient: AppTheme.primaryGradient,
-            ),
-          ),
-      ],
     );
   }
 
