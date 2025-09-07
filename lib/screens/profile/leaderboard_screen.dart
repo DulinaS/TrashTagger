@@ -128,6 +128,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ? const ModernLoadingWidget(message: 'Loading leaderboards...')
             : Column(
                 children: [
+                  const SizedBox(height: 10),
+                  // Animated Tab Bar
+                  SlideInAnimation(
+                    delay: AnimationConstants.mediumDelay,
+                    child: _buildAnimatedTabBar(),
+                  ),
+
                   // Current User Rank
                   SlideInAnimation(
                     delay: AnimationConstants.microDelay,
@@ -213,15 +220,93 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           ),
         ),
       ],
-      bottom: TabBar(
+    );
+  }
+
+  Widget _buildAnimatedTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundSecondary,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.warningAmber.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
         controller: _tabController,
-        indicatorColor: AppTheme.accentAmber,
         labelColor: AppTheme.accentAmber,
-        unselectedLabelColor: AppTheme.textSecondary,
-        tabs: const [
-          Tab(text: 'All Time'),
-          Tab(text: 'This Month'),
-          Tab(text: 'Weekly'),
+        unselectedLabelColor: AppTheme.warningAmber,
+        labelStyle: AppTheme.labelMedium.copyWith(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: AppTheme.labelMedium,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: AppTheme.primaryGradient.scale(0.1),
+        ),
+        indicatorPadding: const EdgeInsets.all(2),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        tabs: [
+          Container(
+            height: 48, // Set fixed height for proper coverage
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'All Time',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            height: 48, // Set fixed height for proper coverage
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'This Month',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            height: 48, // Set fixed height for proper coverage
+            child: Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Weekly',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -254,57 +339,66 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Your Ranking',
-                  style: AppTheme.headlineMedium.copyWith(
-                    fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Text(
+                    'Your Ranking',
+                    style: AppTheme.headlineMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ScaleInAnimation(
-                    delay: AnimationConstants.shortDelay,
-                    child: _buildRankInfo(
-                      'Global',
-                      _currentUserGlobalRank?.toString() ?? 'Unranked',
-                      Icons.public_rounded,
-                      AppTheme.primaryGradient,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ScaleInAnimation(
-                    delay: AnimationConstants.mediumDelay,
-                    child: _buildRankInfo(
-                      'Monthly',
-                      _currentUserMonthlyRank?.toString() ?? 'Unranked',
-                      Icons.calendar_month_rounded,
-                      LinearGradient(
-                        colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+            // FIXED: Use IntrinsicHeight to ensure equal height and better spacing
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ScaleInAnimation(
+                      delay: AnimationConstants.shortDelay,
+                      child: _buildRankInfo(
+                        'Global',
+                        _currentUserGlobalRank?.toString() ?? 'N/A',
+                        Icons.public_rounded,
+                        AppTheme.primaryGradient,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ScaleInAnimation(
-                    delay: AnimationConstants.longDelay,
-                    child: _buildRankInfo(
-                      'Weekly',
-                      'Coming Soon',
-                      Icons.calendar_today_rounded,
-                      LinearGradient(
-                        colors: [AppTheme.textSecondary, AppTheme.borderMedium],
+                  const SizedBox(width: 12), // Reduced spacing
+                  Expanded(
+                    child: ScaleInAnimation(
+                      delay: AnimationConstants.mediumDelay,
+                      child: _buildRankInfo(
+                        'Monthly',
+                        _currentUserMonthlyRank?.toString() ?? 'N/A',
+                        Icons.calendar_month_rounded,
+                        LinearGradient(
+                          colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12), // Reduced spacing
+                  Expanded(
+                    child: ScaleInAnimation(
+                      delay: AnimationConstants.longDelay,
+                      child: _buildRankInfo(
+                        'Weekly',
+                        'Soon', // Shortened text
+                        Icons.calendar_today_rounded,
+                        LinearGradient(
+                          colors: [
+                            AppTheme.textSecondary,
+                            AppTheme.borderMedium,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -319,12 +413,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     LinearGradient gradient,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reduced padding for better fit
       decoration: BoxDecoration(
         color: AppTheme.backgroundPrimary,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min, // Prevent unnecessary expansion
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -332,19 +427,41 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               gradient: gradient,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 18,
+            ), // Slightly smaller icon
           ),
           const SizedBox(height: 8),
-          Text(
-            rank,
-            style: AppTheme.titleLarge.copyWith(
-              color: gradient.colors.first,
-              fontWeight: FontWeight.w700,
+          // FIXED: Constrain rank text to prevent overflow
+          SizedBox(
+            height: 22, // Fixed height to prevent layout shifts
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                rank,
+                style: AppTheme.titleMedium.copyWith(
+                  // Changed from titleLarge to titleMedium
+                  color: gradient.colors.first,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+              ),
             ),
           ),
+          const SizedBox(height: 4), // Reduced spacing
+          // FIXED: Constrain label text
           Text(
             label,
-            style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+            style: AppTheme.bodySmall.copyWith(
+              color: AppTheme.textSecondary,
+              fontSize: 11, // Slightly smaller font
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
