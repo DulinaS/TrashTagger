@@ -109,7 +109,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       print('Error loading nearby reports: $e');
     }
 
-    setState(() => _isLoading = false);
+    //setState(() => _isLoading = false);
   }
 
   Future<void> _getCurrentLocation() async {

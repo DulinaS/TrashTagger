@@ -1,4 +1,4 @@
-// lib/screens/profile/badges_screen.dart - Modern Vibrant Design
+// lib/screens/profile/badges_screen.dart - Fixed Overflow Issues
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -123,7 +123,7 @@ class _BadgesScreenState extends State<BadgesScreen>
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 100,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -141,28 +141,39 @@ class _BadgesScreenState extends State<BadgesScreen>
             ),
           ),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppTheme.warningGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.military_tech_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Badges & Achievements',
-              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            // FIXED: Use LayoutBuilder and Flexible to prevent overflow
+            return Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.warningGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.military_tech_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    'Achievements',
+                    style: AppTheme.titleLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16, right: 20),
       ),
     );
   }
@@ -191,10 +202,13 @@ class _BadgesScreenState extends State<BadgesScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Achievement Progress',
-                style: AppTheme.headlineMedium.copyWith(
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  'Achievement Progress',
+                  style: AppTheme.headlineMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -259,10 +273,13 @@ class _BadgesScreenState extends State<BadgesScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Completion Rate',
-                      style: AppTheme.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w500,
+                    Flexible(
+                      child: Text(
+                        'Completion Rate',
+                        style: AppTheme.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
@@ -349,13 +366,15 @@ class _BadgesScreenState extends State<BadgesScreen>
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  '$category Badges',
-                  style: AppTheme.headlineMedium.copyWith(
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    '$category Badges',
+                    style: AppTheme.headlineMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -386,7 +405,7 @@ class _BadgesScreenState extends State<BadgesScreen>
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 1.1,
+                    childAspectRatio: 0.95,
                   ),
                   itemCount: badges.length,
                   itemBuilder: (context, index) {
@@ -410,7 +429,7 @@ class _BadgesScreenState extends State<BadgesScreen>
     return ScaleInAnimation(
       delay: Duration(milliseconds: 100 + (index * 50)),
       child: ModernCard(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         backgroundColor: isEarned
             ? rarityColor.withOpacity(0.05)
             : AppTheme.backgroundSecondary,
@@ -419,13 +438,15 @@ class _BadgesScreenState extends State<BadgesScreen>
             : null,
         child: Stack(
           children: [
+            // Main content with optimized spacing
             Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Badge Icon
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     gradient: isEarned
                         ? LinearGradient(
@@ -448,58 +469,72 @@ class _BadgesScreenState extends State<BadgesScreen>
                   ),
                   child: Icon(
                     _getBadgeIcon(badge['id']),
-                    size: 24,
+                    size: 22,
                     color: isEarned ? Colors.white : AppTheme.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 12),
 
-                // Badge Name
-                Text(
-                  badge['name'] ?? 'Unknown',
-                  style: AppTheme.titleMedium.copyWith(
-                    color: isEarned
-                        ? AppTheme.textPrimary
-                        : AppTheme.textSecondary,
-                    fontWeight: isEarned ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-
-                // Points Reward
+                // Badge Name - Optimized spacing
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: isEarned ? AppTheme.warningGradient : null,
-                    color: isEarned
-                        ? null
-                        : AppTheme.textSecondary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  height: 32, // Reduced height for better fit
+                  alignment: Alignment.center,
                   child: Text(
-                    '${badge['pointsAwarded'] ?? 0} pts',
-                    style: AppTheme.labelMedium.copyWith(
-                      color: isEarned ? Colors.white : AppTheme.textSecondary,
-                      fontWeight: FontWeight.w700,
+                    badge['name'] ?? 'Unknown',
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: isEarned
+                          ? AppTheme.textPrimary
+                          : AppTheme.textSecondary,
+                      fontWeight: isEarned ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 12,
+                      height: 1.2,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(height: 4),
 
-                // Rarity
-                Text(
-                  rarity.toUpperCase(),
-                  style: AppTheme.bodySmall.copyWith(
-                    color: rarityColor,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  ),
+                // Points and Rarity - Compact layout
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Points Reward
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: isEarned ? AppTheme.warningGradient : null,
+                        color: isEarned
+                            ? null
+                            : AppTheme.textSecondary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${badge['pointsAwarded'] ?? 0} pts',
+                        style: AppTheme.labelMedium.copyWith(
+                          color: isEarned
+                              ? Colors.white
+                              : AppTheme.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Rarity
+                    Text(
+                      rarity.toUpperCase(),
+                      style: AppTheme.bodySmall.copyWith(
+                        color: rarityColor,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -516,7 +551,7 @@ class _BadgesScreenState extends State<BadgesScreen>
                     child: Icon(
                       Icons.lock_rounded,
                       color: Colors.white,
-                      size: 32,
+                      size: 26,
                     ),
                   ),
                 ),
