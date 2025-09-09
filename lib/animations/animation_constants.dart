@@ -8,7 +8,8 @@ class AnimationConstants {
   static const Duration mediumDuration = Duration(milliseconds: 400);
   static const Duration slowDuration = Duration(milliseconds: 600);
   static const Duration extraSlowDuration = Duration(milliseconds: 800);
-  static const Duration ultraSlowDuration = Duration(milliseconds: 1200);
+  static const Duration extraLongDuration = Duration(milliseconds: 1200);
+  static const Duration ultraSlowDuration = Duration(milliseconds: 1500);
 
   // Curve constants - Modern easing curves
   static const Curve defaultCurve = Curves.easeOut;
