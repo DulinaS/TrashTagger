@@ -94,15 +94,15 @@ class _LoginScreenState extends State<LoginScreen>
                     return Transform.translate(
                       offset: Offset(0, 50 * (1 - _formAnimation.value)),
                       child: Opacity(
-                        opacity: _formAnimation.value,
+                        opacity: _formAnimation.value.clamp(0, 1),
                         child: Column(
                           children: [
-                            const SizedBox(height: 60),
+                            const SizedBox(height: 55),
 
                             // Logo and Title
                             _buildHeader(),
 
-                            const SizedBox(height: 60),
+                            const SizedBox(height: 40),
 
                             // Login Form
                             _buildLoginForm(),
@@ -270,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen>
               'Sign in to continue your environmental journey',
               style: AppTheme.bodyMedium,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
 
             // Email Field
             _buildModernTextField(
@@ -321,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen>
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
             // Forgot Password Link
             Align(
@@ -338,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
             // Login Button
             Consumer<AuthProvider>(
@@ -391,7 +391,7 @@ class _LoginScreenState extends State<LoginScreen>
               },
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
 
             // Register Link
             Row(
