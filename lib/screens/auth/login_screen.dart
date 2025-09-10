@@ -131,11 +131,13 @@ class _LoginScreenState extends State<LoginScreen>
     return AnimatedBuilder(
       animation: _backgroundAnimation,
       builder: (context, child) {
+        final clampedValue = _backgroundAnimation.value.clamp(0.0, 1.0);
+
         return Stack(
           children: [
             // Floating Circles
             Positioned(
-              top: 100 + (50 * _backgroundAnimation.value),
+              top: 100 + (50 * clampedValue),
               right: -50,
               child: Container(
                 width: 200,
@@ -144,15 +146,15 @@ class _LoginScreenState extends State<LoginScreen>
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      AppTheme.primaryEmerald.withOpacity(0.1),
-                      AppTheme.primaryTeal.withOpacity(0.05),
+                      AppTheme.primaryEmerald.withOpacity(0.1 * clampedValue),
+                      AppTheme.primaryTeal.withOpacity(0.05 * clampedValue),
                     ],
                   ),
                 ),
               ),
             ),
             Positioned(
-              top: 300 - (30 * _backgroundAnimation.value),
+              top: 300 - (30 * clampedValue),
               left: -80,
               child: Container(
                 width: 150,
@@ -161,15 +163,15 @@ class _LoginScreenState extends State<LoginScreen>
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      AppTheme.accentPurple.withOpacity(0.08),
-                      AppTheme.accentCoral.withOpacity(0.04),
+                      AppTheme.accentPurple.withOpacity(0.08 * clampedValue),
+                      AppTheme.accentCoral.withOpacity(0.04 * clampedValue),
                     ],
                   ),
                 ),
               ),
             ),
             Positioned(
-              bottom: 100 + (40 * _backgroundAnimation.value),
+              bottom: 100 + (40 * clampedValue),
               right: -30,
               child: Container(
                 width: 120,
@@ -178,8 +180,8 @@ class _LoginScreenState extends State<LoginScreen>
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      AppTheme.accentAmber.withOpacity(0.1),
-                      AppTheme.warningAmber.withOpacity(0.05),
+                      AppTheme.accentAmber.withOpacity(0.1 * clampedValue),
+                      AppTheme.warningAmber.withOpacity(0.05 * clampedValue),
                     ],
                   ),
                 ),

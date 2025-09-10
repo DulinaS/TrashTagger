@@ -1,14 +1,19 @@
-// lib/screens/onboarding/onboarding_screen.dart
+/*
+Store's onboarding status for users on the device's shared preferences
+in production we have to switch it to firebase
+*/
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../providers/auth_provider.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/modern/modern_widgets.dart';
 import '../../animations/custom_animations.dart';
 import '../../animations/animation_constants.dart';
 import '../../animations/floating_shape_animation.dart';
 import '../../models/onboarding_model.dart';
-import 'oboarding_completion_screen.dart';
+import '../home/main_ navigation_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   @override
@@ -260,6 +265,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
+  //Bottom overflowed by 71 pixels
   Widget _buildFeaturePage(OnboardingPage page) {
     return ScaleTransition(
       scale: _scaleAnimation,
@@ -610,50 +616,38 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   void _completeOnboarding() async {
     try {
-      // ✅ Save onboarding completion status first
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_completed', true);
+      // Get current user ID
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.user?.uid;
 
-      // Navigate to completion screen
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              OnboardingCompletionScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
-                ),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: AnimationConstants.extraSlowDuration,
-        ),
+      if (userId == null) {
+        debugPrint('❌ OnboardingScreen: No user ID available');
+        return;
+      }
+
+      debugPrint('💾 OnboardingScreen: Saving completion for user $userId');
+
+      // Save user-specific onboarding completion status
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'onboarding_completed_$userId';
+      await prefs.setBool(key, true);
+
+      debugPrint(
+        '✅ OnboardingScreen: Saved completion status for user $userId',
       );
+
+      // Force the AuthProvider to notify listeners to trigger AuthWrapper rebuild
+      authProvider.notifyListeners();
+
+      // Navigate back to root and let AuthWrapper handle the rest
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     } catch (e) {
-      debugPrint('Error saving onboarding status: $e');
-      // Continue with navigation even if SharedPreferences fails
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              OnboardingCompletionScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
-                ),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: AnimationConstants.extraSlowDuration,
-        ),
-      );
+      debugPrint('❌ OnboardingScreen: Error saving completion status: $e');
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     }
   }
 }

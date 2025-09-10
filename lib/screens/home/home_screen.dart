@@ -1,4 +1,6 @@
 // lib/screens/home/home_screen.dart - Modern Vibrant Design (Completed)
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<TrashReportModel> _userReports = [];
   List<TrashReportModel> _recentActivity = [];
   int _unreadNotificationCount = 0;
+
+  StreamSubscription<QuerySnapshot>? _notificationSubscription;
 
   // Animation controllers
   late AnimationController _refreshController;
@@ -61,6 +65,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _refreshController.dispose();
     _statsController.dispose();
+
+    // Cancel Firestore listener
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -98,18 +105,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _setupNotificationListener() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.user != null) {
-      FirebaseFirestore.instance
-          .collection('notifications')
-          .where('userId', isEqualTo: authProvider.user!.uid)
-          .where('read', isEqualTo: false)
-          .snapshots()
-          .listen((snapshot) {
-            if (mounted) {
-              setState(() {
-                _unreadNotificationCount = snapshot.docs.length;
-              });
-            }
-          });
+      try {
+        // Cancel any existing subscription
+        _notificationSubscription?.cancel();
+
+        _notificationSubscription = FirebaseFirestore.instance
+            .collection('notifications')
+            .where('userId', isEqualTo: authProvider.user!.uid)
+            .where('read', isEqualTo: false)
+            .snapshots()
+            .listen(
+              (snapshot) {
+                if (mounted) {
+                  setState(() {
+                    _unreadNotificationCount = snapshot.docs.length;
+                  });
+                }
+              },
+              onError: (error) {
+                debugPrint('Error listening to notifications: $error');
+                // Don't let this error crash the app or interrupt sign-out
+                if (mounted) {
+                  setState(() {
+                    _unreadNotificationCount = 0;
+                  });
+                }
+              },
+              cancelOnError: true, // This is important - cancel on error
+            );
+      } catch (e) {
+        debugPrint('Error setting up notification listener: $e');
+      }
     }
   }
 

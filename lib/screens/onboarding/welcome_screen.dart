@@ -313,9 +313,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ModernGradientButton(
                     text: 'Start Your Journey',
                     onPressed: _navigateToOnboarding,
-                    gradient: LinearGradient(
-                      colors: [Colors.white, Colors.white.withOpacity(0.9)],
-                    ),
+                    gradient: AppTheme.primaryGradient,
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     borderRadius: 25,

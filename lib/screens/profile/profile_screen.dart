@@ -1143,9 +1143,23 @@ class _ProfileScreenState extends State<ProfileScreen>
               borderRadius: BorderRadius.circular(8),
             ),
             child: TextButton(
-              onPressed: () {
+              onPressed: () async {
+                debugPrint('🚪 Sign out button pressed in dialog');
                 Navigator.pop(context);
-                Provider.of<AuthProvider>(context, listen: false).signOut();
+
+                final authProvider = Provider.of<AuthProvider>(
+                  context,
+                  listen: false,
+                );
+                debugPrint(
+                  '🚪 About to call signOut, current user: ${authProvider.user?.uid}',
+                );
+
+                await authProvider.signOut();
+
+                debugPrint(
+                  '🚪 SignOut completed, current user: ${authProvider.user?.uid}',
+                );
               },
               child: Text(
                 'Sign Out',

@@ -121,11 +121,6 @@ class _TrashTaggerAppState extends State<TrashTaggerApp>
             if (authProvider.user != null && !authProvider.isLoading) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 NotificationService.initialize(context);
-                // Load user data when authenticated
-                Provider.of<UserProvider>(
-                  context,
-                  listen: false,
-                ).loadCurrentUser(authProvider.user!.uid);
               });
             }
 
@@ -133,11 +128,7 @@ class _TrashTaggerAppState extends State<TrashTaggerApp>
               return _buildModernSplashScreen();
             }
 
-            if (authProvider.user == null) {
-              return AuthWrapper();
-            }
-
-            return MainNavigationScreen(key: mainNavKey);
+            return AuthWrapper();
           },
         ),
       ),

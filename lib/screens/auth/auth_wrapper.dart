@@ -13,47 +13,70 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        if (authProvider.isAuthenticated) {
-          // Load user data when authenticated
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Provider.of<UserProvider>(
-              context,
-              listen: false,
-            ).loadCurrentUser(authProvider.user!.uid);
-          });
+        // Show loading screen while auth state is being determined
+        if (authProvider.isLoading) {
+          return _buildLoadingScreen();
+        }
 
-          // Check if user needs onboarding
-          return FutureBuilder<bool>(
-            future: _checkOnboardingStatus(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildLoadingScreen();
-              }
-
-              final hasCompletedOnboarding = snapshot.data ?? false;
-
-              // ✅ If onboarding not completed, show welcome screen
-              if (!hasCompletedOnboarding) {
-                return WelcomeScreen();
-              }
-
-              // ✅ If onboarding completed, go directly to main app
-              return MainNavigationScreen();
-            },
-          );
-        } else {
+        // If not authenticated, show login screen
+        if (!authProvider.isAuthenticated || authProvider.user == null) {
+          debugPrint('🔐 AuthWrapper: User not authenticated, showing login');
           return LoginScreen();
         }
+
+        // User is authenticated - load user data and check onboarding status
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Provider.of<UserProvider>(
+            context,
+            listen: false,
+          ).loadCurrentUser(authProvider.user!.uid);
+        });
+
+        // Check if THIS USER has completed onboarding (user-specific)
+        return FutureBuilder<bool>(
+          future: _checkUserOnboardingStatus(authProvider.user!.uid),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoadingScreen();
+            }
+
+            final hasCompletedOnboarding = snapshot.data ?? false;
+
+            // Debug print to help track the flow
+            debugPrint(
+              '🔍 AuthWrapper: User ${authProvider.user!.uid} authenticated, onboarding completed: $hasCompletedOnboarding',
+            );
+
+            // If onboarding not completed, show welcome screen
+            if (!hasCompletedOnboarding) {
+              debugPrint(
+                '📝 AuthWrapper: Showing onboarding flow for user ${authProvider.user!.uid}',
+              );
+              return WelcomeScreen();
+            }
+
+            // If onboarding completed, go directly to main app
+            debugPrint(
+              '🏠 AuthWrapper: Showing main app for user ${authProvider.user!.uid}',
+            );
+            return MainNavigationScreen();
+          },
+        );
       },
     );
   }
 
-  Future<bool> _checkOnboardingStatus() async {
+  // ✅ USER-SPECIFIC onboarding check
+  Future<bool> _checkUserOnboardingStatus(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool('onboarding_completed') ?? false;
+      // Use user ID as part of the key
+      final key = 'onboarding_completed_$userId';
+      final completed = prefs.getBool(key) ?? false;
+      debugPrint('🔍 Onboarding status for user $userId: $completed');
+      return completed;
     } catch (e) {
-      debugPrint('Error checking onboarding status: $e');
+      debugPrint('Error checking onboarding status for user $userId: $e');
       return false; // Default to showing onboarding if error occurs
     }
   }
