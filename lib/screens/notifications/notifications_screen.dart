@@ -97,7 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     final unreadCount = _notifications.where((n) => !n.read).length;
 
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 120,
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
@@ -109,8 +109,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.accentCoral.withOpacity(0.1),
-                AppTheme.accentAmber.withOpacity(0.05),
+                AppTheme.accentAmber.withOpacity(0.1),
+                AppTheme.accentCoral.withOpacity(0.05),
               ],
             ),
           ),
@@ -126,31 +126,25 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
-                Icons.notifications_active_rounded,
+                Icons.notifications_rounded,
                 color: Colors.white,
                 size: 20,
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Notifications',
-                    style: AppTheme.titleLarge.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+            Flexible(
+              child: ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: [AppTheme.accentCoral, AppTheme.accentAmber],
+                ).createShader(bounds),
+                child: Text(
+                  'Notifications',
+                  style: AppTheme.titleLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
-                  if (unreadCount > 0)
-                    Text(
-                      '$unreadCount unread',
-                      style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.accentCoral,
-                      ),
-                    ),
-                ],
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
