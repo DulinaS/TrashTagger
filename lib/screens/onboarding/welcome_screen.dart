@@ -59,7 +59,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
     );
 
-    _logoRotation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    // Updated rotation to oscillate between -0.1 and 0.1 radians (about ±6 degrees)
+    _logoRotation = Tween<double>(begin: -0.1, end: 0.1).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeInOut),
     );
 
@@ -88,6 +89,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     if (mounted) {
       _logoController.forward();
       _particleController.repeat();
+
+      // Start continuous rotation after initial scale animation
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (mounted) {
+        _logoController.repeat(
+          reverse: true,
+        ); // This makes it rotate back and forth
+      }
 
       await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) _textController.forward();
@@ -131,18 +140,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       ),
     );
   }
-
-  /*  Widget _buildParticleBackground() {
-    return AnimatedBuilder(
-      animation: _particleAnimation,
-      builder: (context, child) {
-        return CustomPaint(
-          painter: ParticleBackgroundPainter(_particleAnimation.value),
-          size: Size.infinite,
-        );
-      },
-    );
-  } */
 
   Widget _buildFloatingShapes() {
     return Stack(
@@ -210,135 +207,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
   }
 
-  Widget _buildWelcomeContent() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spacer(),
-
-            // Animated Logo
-            AnimatedBuilder(
-              animation: _logoController,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _logoScale.value,
-                  child: Transform.rotate(
-                    angle: _logoRotation.value * 0.5,
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.white, Colors.white.withOpacity(0.9)],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 30,
-                            offset: const Offset(0, 15),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.eco_rounded,
-                        size: 90,
-                        color: AppTheme.primaryEmerald,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 60),
-
-            // Animated Text
-            SlideTransition(
-              position: _textSlide,
-              child: FadeTransition(
-                opacity: _textFade,
-                child: Column(
-                  children: [
-                    Text(
-                      'TrashTagger',
-                      style: AppTheme.displayLarge.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 52,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 4),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Text(
-                      'Making the world cleaner,\none report at a time',
-                      style: AppTheme.titleLarge.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                        height: 1.4,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.2),
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const Spacer(),
-
-            // Animated Button
-            ScaleTransition(
-              scale: _buttonScale,
-              child: Column(
-                children: [
-                  ModernGradientButton(
-                    text: 'Start Your Journey',
-                    onPressed: _navigateToOnboarding,
-                    gradient: AppTheme.primaryGradient,
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    borderRadius: 25,
-                    icon: Icons.arrow_forward_rounded,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Text(
-                    'Join thousands of eco-warriors',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _navigateToOnboarding() {
     HapticFeedback.lightImpact();
 
@@ -362,33 +230,145 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       ),
     );
   }
-}
 
-// Custom painter for particle background
-/* class ParticleBackgroundPainter extends CustomPainter {
-  final double animationValue;
-  
-  ParticleBackgroundPainter(this.animationValue);
+  Widget _buildWelcomeContent() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(30), // Reduced from 40
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Spacer(flex: 1),
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.fill;
+            // Animated Logo - Reduced size
+            AnimatedBuilder(
+              animation: _logoController,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _logoScale.value,
+                  child: Transform.rotate(
+                    angle: _logoRotation.value,
+                    child: Container(
+                      width: 130, // Reduced from 180
+                      height: 130, // Reduced from 180
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.white, Colors.white.withOpacity(0.9)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 25, // Reduced shadow
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Image.asset(
+                            'assets/images/App-Logo.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.eco_rounded,
+                                size: 65,
+                                color: AppTheme.primaryEmerald,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
 
-    // Draw floating particles
-    for (int i = 0; i < 50; i++) {
-      final x = (size.width * (i % 10) / 10) + 
-                (50 * (animationValue + i * 0.1).sin());
-      final y = (size.height * (i / 50)) + 
-                (30 * (animationValue * 2 + i * 0.05).cos());
-      
-      final radius = 2 + (3 * (animationValue + i * 0.2).sin()).abs();
-      
-      canvas.drawCircle(Offset(x, y), radius, paint);
-    }
+            const SizedBox(height: 35), // Reduced spacing
+            // Animated Text
+            SlideTransition(
+              position: _textSlide,
+              child: FadeTransition(
+                opacity: _textFade,
+                child: Column(
+                  children: [
+                    Text(
+                      'TrashTagger',
+                      style: AppTheme.displayLarge.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 42, // Reduced from 46
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            offset: const Offset(0, 3),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Text(
+                      'Making the world cleaner,\none report at a time',
+                      style: AppTheme.titleLarge.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                        fontSize: 15,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.2),
+                            offset: const Offset(0, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const Spacer(flex: 2),
+
+            // Animated Button
+            ScaleTransition(
+              scale: _buttonScale,
+              child: Column(
+                children: [
+                  ModernGradientButton(
+                    text: 'Start Your Journey',
+                    onPressed: _navigateToOnboarding,
+                    gradient: AppTheme.primaryGradient,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    borderRadius: 25,
+                    icon: Icons.arrow_forward_rounded,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Join thousands of eco-warriors',
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-} */
+}

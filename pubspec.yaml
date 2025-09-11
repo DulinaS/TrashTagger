@@ -64,6 +64,8 @@ dependencies:
   flutter_local_notifications: ^19.4.1
   cloud_functions: ^5.6.2
   shared_preferences: ^2.5.3
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
 
 dev_dependencies:
   flutter_test:
@@ -87,9 +89,27 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/
+    - assets/images/App-Logo.png
+    - assets/images/Splash-Screen.png
     - assets/icons/
     - assets/badges/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: 'assets/images/App-Logo.png'
+  min_sdk_android: 21
+
+flutter_native_splash:
+  background_image: assets/images/Splash-Screen.png
+  image: assets/images/App-Logo.png
+
+  android_gravity: center
+  fullscreen: true
+
+  android_12:
+    image: assets/images/App-Logo.png
+    background_image: assets/images/Splash-Screen.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

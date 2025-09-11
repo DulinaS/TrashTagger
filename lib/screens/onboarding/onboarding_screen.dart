@@ -217,7 +217,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           shaderCallback: (bounds) =>
                               AppTheme.primaryGradient.createShader(bounds),
                           child: Text(
-                            'Welcome to',
+                            'Hi There!',
                             style: AppTheme.headlineLarge.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w300,
@@ -265,90 +265,95 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  //Bottom overflowed by 71 pixels
   Widget _buildFeaturePage(OnboardingPage page) {
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.fromLTRB(30, 20, 30, 20), // Reduced padding
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Spacer(),
+            const Spacer(flex: 1),
 
-            // Animated Icon
+            // Animated Icon - Smaller
             RotationTransition(
               turns: _rotateAnimation,
               child: Container(
-                width: 140,
-                height: 140,
+                width: 100, // Reduced from 140
+                height: 100,
                 decoration: BoxDecoration(
                   gradient: page.gradient,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: page.gradient.colors.first.withOpacity(0.4),
-                      blurRadius: 25,
-                      offset: const Offset(0, 12),
+                      color: page.gradient.colors.first.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: Icon(page.icon, size: 70, color: Colors.white),
+                child: Icon(page.icon, size: 50, color: Colors.white),
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 25),
 
-            // Title and Subtitle
+            // Title and Subtitle - Compact
             Text(
               page.title,
               style: AppTheme.displayMedium.copyWith(
                 fontWeight: FontWeight.w800,
+                fontSize: 22,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               page.subtitle,
               style: AppTheme.titleLarge.copyWith(
                 color: AppTheme.textSecondary,
                 fontWeight: FontWeight.w500,
+                fontSize: 15,
               ),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
-            // Description
+            // Description - Shorter
             Text(
               page.description,
               style: AppTheme.bodyLarge.copyWith(
-                height: 1.6,
+                height: 1.4,
                 color: AppTheme.textSecondary,
+                fontSize: 14,
               ),
               textAlign: TextAlign.center,
+              maxLines: 3, // Limit lines
+              overflow: TextOverflow.ellipsis,
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 25),
 
-            // Features List
-            ...page.features.asMap().entries.map((entry) {
+            // Features List - More compact
+            ...page.features.take(4).toList().asMap().entries.map((entry) {
+              // Limit to 3 features
               return SlideInAnimation(
-                delay: Duration(milliseconds: 200 * entry.key),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                delay: Duration(milliseconds: 150 * entry.key),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
                       Text(
                         entry.value.split(' ')[0],
-                        style: const TextStyle(fontSize: 20),
+                        style: const TextStyle(fontSize: 16),
                       ),
-                      const SizedBox(width: 15),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           entry.value.substring(entry.value.indexOf(' ') + 1),
                           style: AppTheme.bodyMedium.copyWith(
                             fontWeight: FontWeight.w600,
+                            fontSize: 15,
                           ),
                         ),
                       ),
@@ -358,8 +363,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               );
             }).toList(),
 
-            const Spacer(),
+            const Spacer(flex: 2),
 
+            // Page Controls - Always visible
             _buildPageControls(),
           ],
         ),
