@@ -848,6 +848,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
         margin: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -879,9 +880,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                   const SizedBox(height: 20),
                   _buildLanguageOption('English', 'English'),
                   const SizedBox(height: 12),
-                  _buildLanguageOption('Spanish', 'Español'),
+                  _buildLanguageOption('Tamil', 'Coming Soon'),
                   const SizedBox(height: 12),
-                  _buildLanguageOption('Sinhala', 'සිංහල'),
+                  _buildLanguageOption('Sinhala', 'සිංහල-Coming Soon'),
                   const SizedBox(height: 20),
                 ],
               ),
