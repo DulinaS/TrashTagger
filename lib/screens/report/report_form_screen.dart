@@ -1,9 +1,10 @@
+// lib/screens/report/report_form_screen.dart - Modern Vibrant Design (Completed)
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:trash_tagger/screens/location/location_picker_screen.dart'; // Fixed import path
+import 'package:trash_tagger/screens/location/location_picker_screen.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/reports_provider.dart';
@@ -12,7 +13,10 @@ import '../../models/trash_report_model.dart';
 import '../../themes/app_theme.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
-import '../../widgets/common/custom_button.dart';
+import '../../widgets/modern/modern_widgets.dart';
+import '../../animations/custom_animations.dart';
+import '../../animations/animation_constants.dart';
+import '../../animations/page_transitions.dart';
 import 'report_success_screen.dart';
 
 class ReportFormScreen extends StatefulWidget {
@@ -24,7 +28,8 @@ class ReportFormScreen extends StatefulWidget {
   _ReportFormScreenState createState() => _ReportFormScreenState();
 }
 
-class _ReportFormScreenState extends State<ReportFormScreen> {
+class _ReportFormScreenState extends State<ReportFormScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
 
@@ -38,75 +43,192 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   bool _isSubmitting = false;
   String? _error;
 
+  // Animation controllers
+  late AnimationController _slideController;
+  late AnimationController _formController;
+
   final StorageService _storageService = StorageService();
 
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _clearError();
+  }
+
+  void _initializeAnimations() {
+    _slideController = AnimationController(
+      duration: AnimationConstants.mediumDuration,
+      vsync: this,
+    );
+    _formController = AnimationController(
+      duration: AnimationConstants.slowDuration,
+      vsync: this,
+    );
+
+    // Start animations
+    Future.delayed(AnimationConstants.shortDelay, () {
+      if (mounted) {
+        _slideController.forward();
+        _formController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _formController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: const Text('Report Details'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: _showHelpDialog,
-          ),
-        ],
+      backgroundColor: AppTheme.backgroundPrimary,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [_buildModernAppBar()];
+        },
+        body: _buildBody(),
       ),
-      body: _buildBody(),
-      bottomNavigationBar: _buildBottomBar(),
+      bottomNavigationBar: SlideInAnimation(
+        beginOffset: AnimationConstants.slideFromBottom,
+        delay: const Duration(milliseconds: 600),
+        child: _buildBottomBar(),
+      ),
+    );
+  }
+
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 80,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.backgroundPrimary,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryEmerald.withOpacity(0.1),
+                AppTheme.accentPurple.withOpacity(0.05),
+              ],
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.assignment_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Report Details',
+              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundSecondary,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.borderLight),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.help_outline_rounded,
+                color: AppTheme.textPrimary,
+              ),
+              onPressed: _showHelpDialog,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildBody() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image Preview Section
-            _buildImagePreview(),
+            SlideInAnimation(
+              delay: AnimationConstants.microDelay,
+              child: _buildImagePreview(),
+            ),
             const SizedBox(height: 24),
 
             // Location Selection Section
-            _buildLocationSection(),
+            SlideInAnimation(
+              delay: AnimationConstants.shortDelay,
+              child: _buildLocationSection(),
+            ),
             const SizedBox(height: 24),
 
             // Trash Type Selection
-            _buildTrashTypeSection(),
+            SlideInAnimation(
+              delay: AnimationConstants.mediumDelay,
+              child: _buildTrashTypeSection(),
+            ),
             const SizedBox(height: 24),
 
             // Severity Selection
-            _buildSeveritySection(),
+            SlideInAnimation(
+              delay: AnimationConstants.longDelay,
+              child: _buildSeveritySection(),
+            ),
             const SizedBox(height: 24),
 
             // Description Section
-            _buildDescriptionSection(),
+            SlideInAnimation(
+              delay: AnimationConstants.extraLongDelay,
+              child: _buildDescriptionSection(),
+            ),
             const SizedBox(height: 24),
 
             // Estimated Effort Display
-            _buildEffortEstimateSection(),
+            ScaleInAnimation(
+              delay: const Duration(milliseconds: 500),
+              child: _buildEffortEstimateSection(),
+            ),
             const SizedBox(height: 24),
 
             // Safety Notice
-            _buildSafetyNotice(),
+            ScaleInAnimation(
+              delay: const Duration(milliseconds: 600),
+              child: _buildSafetyNotice(),
+            ),
 
             // Error Display
             if (_error != null) ...[
               const SizedBox(height: 16),
-              _buildErrorDisplay(),
+              SlideInAnimation(child: _buildErrorDisplay()),
             ],
 
-            const SizedBox(height: 100), // Space for bottom bar
+            const SizedBox(height: 120), // Space for bottom bar
           ],
         ),
       ),
@@ -114,249 +236,287 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 
   Widget _buildImagePreview() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.photo_camera, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Photo Preview', style: AppTheme.headlineMedium),
-              ],
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.photo_camera_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Photo Preview',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.file(
+              widget.imageFile,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
             ),
-            const SizedBox(height: 12),
-            ClipRRect(
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.infoBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                widget.imageFile,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
+              border: Border.all(color: AppTheme.infoBlue.withOpacity(0.3)),
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.infoBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.psychology, size: 16, color: AppTheme.infoBlue),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'This photo will be analyzed by AI for verification',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.infoBlue,
-                        fontSize: 12,
-                      ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.psychology_rounded,
+                  size: 16,
+                  color: AppTheme.infoBlue,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'This photo will be analyzed by AI for verification',
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: AppTheme.infoBlue,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLocationSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.location_on, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Location', style: AppTheme.headlineMedium),
-                const Spacer(),
-                if (_selectedLocation == null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primaryTeal, AppTheme.infoBlue],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Location',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              if (_selectedLocation == null)
+                ModernStatusBadge(
+                  status: 'pending',
+                  customText: 'REQUIRED',
+                  color: AppTheme.warningAmber,
+                  showPulse: true,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Selected location display
+          if (_selectedLocation != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.successGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.successGreen.withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: AppTheme.successGreen,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Location Selected',
+                        style: AppTheme.labelMedium.copyWith(
+                          color: AppTheme.successGreen,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _selectedAddress,
+                    style: AppTheme.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w500,
                     ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.warningOrange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Lat: ${_selectedLocation!.latitude.toStringAsFixed(6)}, '
+                    'Lng: ${_selectedLocation!.longitude.toStringAsFixed(6)}',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontFamily: 'monospace',
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Select location button
+          ModernGradientButton(
+            text: _selectedLocation == null
+                ? 'Select Location on Map'
+                : 'Change Location',
+            onPressed: _selectLocationOnMap,
+            icon: _selectedLocation == null
+                ? Icons.map_rounded
+                : Icons.edit_location_rounded,
+            gradient: _selectedLocation == null
+                ? AppTheme.primaryGradient
+                : LinearGradient(
+                    colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                  ),
+            width: double.infinity,
+          ),
+
+          if (_selectedLocation == null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.warningAmber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.warningAmber.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 16,
+                    color: AppTheme.warningAmber,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      'REQUIRED',
+                      'Please select the exact location where you found the trash',
                       style: AppTheme.bodyMedium.copyWith(
-                        fontSize: 10,
-                        color: AppTheme.warningOrange,
-                        fontWeight: FontWeight.bold,
+                        color: AppTheme.warningAmber,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Selected location display
-            if (_selectedLocation != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightGreen.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.primaryGreen.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          color: AppTheme.primaryGreen,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Location Selected',
-                          style: AppTheme.labelMedium.copyWith(
-                            color: AppTheme.primaryGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(_selectedAddress, style: AppTheme.bodyLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Lat: ${_selectedLocation!.latitude.toStringAsFixed(6)}, '
-                      'Lng: ${_selectedLocation!.longitude.toStringAsFixed(6)}',
-                      style: AppTheme.bodyMedium.copyWith(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Select location button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _selectLocationOnMap,
-                icon: Icon(
-                  _selectedLocation == null ? Icons.map : Icons.edit_location,
-                ),
-                label: Text(
-                  _selectedLocation == null
-                      ? 'Select Location on Map'
-                      : 'Change Location',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedLocation == null
-                      ? AppTheme.primaryGreen
-                      : AppTheme.infoBlue,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
               ),
             ),
-
-            if (_selectedLocation == null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.warningOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: AppTheme.warningOrange,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Please select the exact location where you found the trash',
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.warningOrange,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildTrashTypeSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.category, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Trash Type', style: AppTheme.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.trashTypes.map((type) {
-                final isSelected = _selectedTrashType == type;
-                return FilterChip(
-                  avatar: Icon(
-                    _getTrashTypeIcon(type),
-                    size: 18,
-                    color: isSelected ? Colors.white : AppTheme.primaryGreen,
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.accentPurple, AppTheme.accentCoral],
                   ),
-                  label: Text(Helpers.getTrashTypeDisplayName(type)),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedTrashType = type;
-                      _clearError();
-                    });
-                  },
-                  selectedColor: AppTheme.primaryGreen,
-                  checkmarkColor: Colors.white,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppTheme.primaryGreen,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 8),
-            _buildTrashTypeDescription(),
-          ],
-        ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.category_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Trash Type',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: AppConstants.trashTypes.map((type) {
+              final isSelected = _selectedTrashType == type;
+              return ModernChip(
+                label: Helpers.getTrashTypeDisplayName(type),
+                icon: _getTrashTypeIcon(type),
+                selected: isSelected,
+                onTap: () {
+                  setState(() {
+                    _selectedTrashType = type;
+                    _clearError();
+                  });
+                },
+                selectedColor: _getTrashTypeColor(type),
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [
+                          _getTrashTypeColor(type),
+                          _getTrashTypeColor(type).withOpacity(0.8),
+                        ],
+                      )
+                    : null,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          _buildTrashTypeDescription(),
+        ],
       ),
     );
   }
@@ -372,116 +532,175 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     };
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.lightGreen.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
+        color: AppTheme.backgroundPrimary,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         descriptions[_selectedTrashType] ?? '',
         style: AppTheme.bodyMedium.copyWith(
           color: AppTheme.textSecondary,
-          fontSize: 12,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 
   Widget _buildSeveritySection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.priority_high, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Severity Level', style: AppTheme.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Column(
-              children: AppConstants.severityLevels.map((severity) {
-                final isSelected = _selectedSeverity == severity;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.warningGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.priority_high_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Severity Level',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Column(
+            children: AppConstants.severityLevels.map((severity) {
+              final isSelected = _selectedSeverity == severity;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? Helpers.getSeverityColor(severity)
+                        : AppTheme.borderLight,
+                    width: isSelected ? 2 : 1,
+                  ),
+                  color: isSelected
+                      ? Helpers.getSeverityColor(severity).withOpacity(0.05)
+                      : null,
+                ),
+                child: RadioListTile<String>(
+                  title: Text(
+                    _getSeverityDisplayName(severity),
+                    style: AppTheme.titleMedium.copyWith(
                       color: isSelected
                           ? Helpers.getSeverityColor(severity)
-                          : Colors.transparent,
-                      width: 2,
+                          : AppTheme.textPrimary,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                     ),
                   ),
-                  child: RadioListTile<String>(
-                    title: Text(
-                      _getSeverityDisplayName(severity),
-                      style: AppTheme.labelMedium.copyWith(
-                        color: isSelected
-                            ? Helpers.getSeverityColor(severity)
-                            : AppTheme.textPrimary,
-                      ),
+                  subtitle: Text(
+                    _getSeverityDescription(severity),
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: AppTheme.textSecondary,
                     ),
-                    subtitle: Text(
-                      _getSeverityDescription(severity),
-                      style: AppTheme.bodyMedium.copyWith(fontSize: 12),
-                    ),
-                    value: severity,
-                    groupValue: _selectedSeverity,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedSeverity = value!;
-                        _clearError();
-                      });
-                    },
-                    activeColor: Helpers.getSeverityColor(severity),
                   ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
+                  value: severity,
+                  groupValue: _selectedSeverity,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSeverity = value!;
+                      _clearError();
+                    });
+                  },
+                  activeColor: Helpers.getSeverityColor(severity),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildDescriptionSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.description, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Additional Details', style: AppTheme.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _descriptionController,
-              maxLines: 3,
-              maxLength: 200,
-              decoration: InputDecoration(
-                hintText:
-                    'Any additional information about this trash...\n'
-                    'e.g., "Behind the bus stop", "Near the playground"',
-                border: OutlineInputBorder(
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                counterText: '${_descriptionController.text.length}/200',
+                child: Icon(
+                  Icons.description_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-              onChanged: (value) {
-                setState(() {}); // Update counter
-              },
+              const SizedBox(width: 12),
+              Text(
+                'Additional Details',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _descriptionController,
+            maxLines: 4,
+            maxLength: 200,
+            style: AppTheme.bodyMedium,
+            decoration: InputDecoration(
+              hintText:
+                  'Any additional information about this trash...\n'
+                  'e.g., "Behind the bus stop", "Near the playground"',
+              hintStyle: AppTheme.bodyMedium.copyWith(
+                color: AppTheme.textTertiary,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppTheme.primaryEmerald,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: AppTheme.backgroundPrimary,
+              contentPadding: const EdgeInsets.all(16),
+              counterStyle: AppTheme.bodySmall.copyWith(
+                color: AppTheme.textTertiary,
+              ),
             ),
-          ],
-        ),
+            onChanged: (value) {
+              setState(() {}); // Update counter
+            },
+          ),
+        ],
       ),
     );
   }
@@ -490,77 +709,137 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     final effort = _getEstimatedEffort(_selectedSeverity);
     final points = _getExpectedPoints(_selectedSeverity);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.schedule, color: AppTheme.primaryGreen),
-                const SizedBox(width: 8),
-                Text('Cleanup Estimate', style: AppTheme.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.infoBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(Icons.timer, color: AppTheme.infoBlue),
-                        const SizedBox(height: 4),
-                        Text(
-                          effort,
-                          style: AppTheme.labelMedium.copyWith(
-                            color: AppTheme.infoBlue,
-                          ),
-                        ),
-                        Text(
-                          'Estimated Time',
-                          style: AppTheme.bodyMedium.copyWith(fontSize: 10),
-                        ),
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.successGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.schedule_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Cleanup Estimate',
+                style: AppTheme.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.infoBlue.withOpacity(0.1),
+                        AppTheme.primaryTeal.withOpacity(0.05),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.infoBlue.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.infoBlue, AppTheme.primaryTeal],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.timer_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        effort,
+                        style: AppTheme.titleLarge.copyWith(
+                          color: AppTheme.infoBlue,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Estimated Time',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(Icons.stars, color: AppTheme.primaryGreen),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$points pts',
-                          style: AppTheme.labelMedium.copyWith(
-                            color: AppTheme.primaryGreen,
-                          ),
-                        ),
-                        Text(
-                          'Cleanup Reward',
-                          style: AppTheme.bodyMedium.copyWith(fontSize: 10),
-                        ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.accentAmber.withOpacity(0.1),
+                        AppTheme.warningAmber.withOpacity(0.05),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.accentAmber.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.warningGradient,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.stars_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$points pts',
+                        style: AppTheme.titleLarge.copyWith(
+                          color: AppTheme.accentAmber,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Cleanup Reward',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -569,55 +848,102 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     bool showHazardWarning = _selectedTrashType == 'hazardous';
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: showHazardWarning
-            ? AppTheme.dangerRed.withOpacity(0.1)
-            : AppTheme.warningOrange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+            ? AppTheme.errorRed.withOpacity(0.05)
+            : AppTheme.warningAmber.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: showHazardWarning
-              ? AppTheme.dangerRed.withOpacity(0.3)
-              : AppTheme.warningOrange.withOpacity(0.3),
+              ? AppTheme.errorRed.withOpacity(0.3)
+              : AppTheme.warningAmber.withOpacity(0.3),
         ),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(
-                showHazardWarning ? Icons.dangerous : Icons.warning_amber,
-                color: showHazardWarning
-                    ? AppTheme.dangerRed
-                    : AppTheme.warningOrange,
-              ),
-              const SizedBox(width: 8),
+              if (showHazardWarning)
+                PulseAnimation(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorRed,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.dangerous_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warningAmber,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              const SizedBox(width: 12),
               Text(
                 showHazardWarning
                     ? 'Hazardous Material Warning'
                     : 'Safety Notice',
-                style: AppTheme.labelMedium.copyWith(
+                style: AppTheme.titleMedium.copyWith(
                   color: showHazardWarning
-                      ? AppTheme.dangerRed
-                      : AppTheme.warningOrange,
+                      ? AppTheme.errorRed
+                      : AppTheme.warningAmber,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            showHazardWarning
-                ? 'DANGER: Hazardous materials require special handling. Do NOT attempt to clean these yourself. Contact local authorities or hazmat disposal services immediately.'
-                : 'If you see hazardous materials (chemicals, needles, medical waste, etc.), do not attempt to clean them yourself. Report them and let professionals handle the cleanup.',
-            style: AppTheme.bodyMedium,
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: showHazardWarning
+                  ? AppTheme.errorRed.withOpacity(0.1)
+                  : AppTheme.warningAmber.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              showHazardWarning
+                  ? 'DANGER: Hazardous materials require special handling. Do NOT attempt to clean these yourself. Contact local authorities or hazmat disposal services immediately.'
+                  : 'If you see hazardous materials (chemicals, needles, medical waste, etc.), do not attempt to clean them yourself. Report them and let professionals handle the cleanup.',
+              style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+            ),
           ),
           if (showHazardWarning) ...[
-            const SizedBox(height: 8),
-            Text(
-              '⚠️ This report will be flagged for professional cleanup only.',
-              style: AppTheme.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.dangerRed,
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.flag_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This report will be flagged for professional cleanup only.',
+                      style: AppTheme.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -628,20 +954,23 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   Widget _buildErrorDisplay() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.dangerRed.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.dangerRed.withOpacity(0.3)),
+        color: AppTheme.errorRed.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.errorRed.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: AppTheme.dangerRed, size: 20),
-          const SizedBox(width: 8),
+          Icon(Icons.error_outline_rounded, color: AppTheme.errorRed, size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               _error!,
-              style: AppTheme.bodyMedium.copyWith(color: AppTheme.dangerRed),
+              style: AppTheme.bodyMedium.copyWith(
+                color: AppTheme.errorRed,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -651,23 +980,25 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
+        color: AppTheme.backgroundSecondary,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
+            color: AppTheme.shadowMedium,
+            blurRadius: 20,
+            offset: const Offset(0, -8),
           ),
         ],
       ),
       child: SafeArea(
-        child: CustomButton(
+        child: ModernGradientButton(
           text: _isSubmitting ? 'Submitting Report...' : 'Submit Report',
           isLoading: _isSubmitting,
           onPressed: _isSubmitting ? null : _submitReport,
-          icon: Icons.send,
+          icon: _isSubmitting ? null : Icons.send_rounded,
+          gradient: AppTheme.primaryGradient,
+          width: double.infinity,
         ),
       ),
     );
@@ -678,11 +1009,11 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     try {
       final result = await Navigator.push<Map<String, dynamic>>(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<Map<String, dynamic>>(
           builder: (context) => LocationPickerScreen(
             initialLocation: _selectedLocation,
             initialAddress: _selectedAddress,
-            title: 'Where did you find this trash?',
+            title: 'Trash Location?',
           ),
         ),
       );
@@ -782,8 +1113,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => ReportSuccessScreen(reportId: reportId),
+          PageTransitions.modernFadeScale(
+            page: ReportSuccessScreen(reportId: reportId),
           ),
         );
       }
@@ -810,62 +1141,137 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('How to Report Trash'),
-        content: const SingleChildScrollView(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.help_rounded, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Text('How to Report Trash'),
+          ],
+        ),
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('📍 Location Selection'),
-              Text('• Select the exact location where you found the trash'),
-              Text('• Use the search or pin placement on the map'),
-              Text('• Be as precise as possible for accurate cleanup'),
-              SizedBox(height: 12),
-
-              Text('🗑️ Trash Type'),
-              Text('• Choose the category that best describes the waste'),
-              Text('• Select "Hazardous" for dangerous materials'),
-              Text('• When in doubt, choose "General"'),
-              SizedBox(height: 12),
-
-              Text('⚡ Severity Level'),
-              Text('• Low: Small amount, quick cleanup'),
-              Text('• Medium: Moderate effort required'),
-              Text('• High: Large amount or difficult cleanup'),
-              SizedBox(height: 12),
-
-              Text('📋 What Happens Next'),
-              Text('• AI analyzes your photo for verification'),
-              Text('• Report becomes available as a cleanup challenge'),
-              Text('• Community members can accept and complete it'),
-              Text('• You earn points when it\'s successfully cleaned!'),
+              _buildHelpSection('📍 Location Selection', [
+                'Select the exact location where you found the trash',
+                'Use the search or pin placement on the map',
+                'Be as precise as possible for accurate cleanup',
+              ]),
+              const SizedBox(height: 16),
+              _buildHelpSection('🗑️ Trash Type', [
+                'Choose the category that best describes the waste',
+                'Select "Hazardous" for dangerous materials',
+                'When in doubt, choose "General"',
+              ]),
+              const SizedBox(height: 16),
+              _buildHelpSection('⚡ Severity Level', [
+                'Low: Small amount, quick cleanup',
+                'Medium: Moderate effort required',
+                'High: Large amount or difficult cleanup',
+              ]),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryEmerald.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '📋 What Happens Next',
+                      style: AppTheme.labelMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• AI analyzes your photo for verification\n'
+                      '• Report becomes available as a cleanup challenge\n'
+                      '• Community members can accept and complete it\n'
+                      '• You earn points when it\'s successfully cleaned!',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.primaryEmerald,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(
+          ModernGradientButton(
+            text: 'Got it!',
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it!'),
+            gradient: AppTheme.primaryGradient,
           ),
         ],
       ),
     );
   }
 
+  Widget _buildHelpSection(String title, List<String> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTheme.labelMedium.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        ...items.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('• $item', style: AppTheme.bodyMedium),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper methods for UI data
   IconData _getTrashTypeIcon(String trashType) {
     switch (trashType) {
       case 'general':
-        return Icons.delete_outline;
+        return Icons.delete_rounded;
       case 'recyclable':
-        return Icons.recycling;
+        return Icons.recycling_rounded;
       case 'hazardous':
-        return Icons.warning;
+        return Icons.warning_rounded;
       case 'large':
-        return Icons.chair;
+        return Icons.chair_rounded;
       case 'organic':
-        return Icons.eco;
+        return Icons.eco_rounded;
       default:
-        return Icons.help_outline;
+        return Icons.help_outline_rounded;
+    }
+  }
+
+  Color _getTrashTypeColor(String trashType) {
+    switch (trashType) {
+      case 'general':
+        return AppTheme.textSecondary;
+      case 'recyclable':
+        return AppTheme.primaryTeal;
+      case 'hazardous':
+        return AppTheme.errorRed;
+      case 'large':
+        return AppTheme.accentPurple;
+      case 'organic':
+        return AppTheme.successGreen;
+      default:
+        return AppTheme.textSecondary;
     }
   }
 
@@ -919,11 +1325,5 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       default:
         return 20;
     }
-  }
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
   }
 }

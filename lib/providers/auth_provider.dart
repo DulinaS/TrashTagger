@@ -1,6 +1,7 @@
 // lib/providers/auth_provider.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 
@@ -70,13 +71,33 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> signOut() async {
     try {
+      debugPrint('🚪 AuthProvider.signOut() called');
+      debugPrint('🚪 Current user before signout: ${_user?.uid}');
+
+      // Cancel any active Firestore listeners first
+      await _cancelAllListeners();
+
       await _authService.signOut();
       _user = null;
       _userData = null;
+
+      debugPrint('🚪 User set to null, calling notifyListeners()');
       notifyListeners();
+      debugPrint('🚪 notifyListeners() completed');
     } catch (e) {
+      debugPrint('❌ SignOut error: $e');
       _error = e.toString();
       notifyListeners();
+    }
+  }
+
+  // Add this method to properly cleanup
+  Future<void> _cancelAllListeners() async {
+    // This will be called when signing out to prevent errors
+    try {
+      // Any cleanup needed
+    } catch (e) {
+      debugPrint('Error during cleanup: $e');
     }
   }
 

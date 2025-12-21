@@ -35,10 +35,10 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundPrimary,
       appBar: AppBar(
         title: Text('Test Notifications'),
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: AppTheme.gradientEnd,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -166,11 +166,11 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
     if (status.toLowerCase().contains('authorized') ||
         status == 'Available' ||
         status == 'Yes') {
-      statusColor = AppTheme.primaryGreen;
+      statusColor = AppTheme.accentAmber;
     } else if (status.toLowerCase().contains('denied') ||
         status == 'Missing' ||
         status == 'No') {
-      statusColor = AppTheme.dangerRed;
+      statusColor = AppTheme.errorRed;
     }
 
     return Padding(
@@ -216,7 +216,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
       margin: EdgeInsets.only(bottom: 12),
       width: double.infinity,
       child: Card(
-        color: AppTheme.lightGreen.withOpacity(0.1),
+        color: AppTheme.gradientEnd.withOpacity(0.1),
         child: InkWell(
           onTap: _isLoading ? null : onPressed,
           borderRadius: BorderRadius.circular(8),
@@ -247,7 +247,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  Icon(Icons.play_arrow, color: AppTheme.primaryGreen),
+                  Icon(Icons.play_arrow, color: AppTheme.gradientEnd),
               ],
             ),
           ),
