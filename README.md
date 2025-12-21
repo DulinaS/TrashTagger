@@ -94,8 +94,8 @@ TrashTagger is a mobile application that gamifies environmental cleanup by enabl
 │    Auth      │      │  Firestore   │     │   Storage    │
 │              │      │              │     │              │
 │ • Email/Pass │      │ • Users      │     │ • Images     │
-│ • Google SSO │      │ • Reports    │     │ • Photos     │
-└──────────────┘      │ • Notif.     │     └──────────────┘
+│ • Google SSO │      │ • Reports    │     │              │
+└──────────────┘      │ • Notifc     │     └──────────────┘
                       │ • Leaderboard│
                       └──────────────┘
                              |
