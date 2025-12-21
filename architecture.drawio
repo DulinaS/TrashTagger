@@ -1,0 +1,258 @@
+<mxfile host="app.diagrams.net" modified="2025-12-21T00:00:00.000Z" agent="draw.io" version="24.0.0">
+  <diagram name="TrashTagger Architecture" id="architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="Mobile Waste Management System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="284" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Client Layer -->
+        <mxCell id="client-layer" value="PRESENTATION LAYER" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="1000" height="180" as="geometry" />
+        </mxCell>
+        
+        <!-- Mobile Apps -->
+        <mxCell id="flutter-app" value="Cross-Platform Mobile Application (Flutter)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1" vertex="1" parent="client-layer">
+          <mxGeometry x="40" y="50" width="920" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="platforms" value="" style="group" vertex="1" connectable="0" parent="client-layer">
+          <mxGeometry x="40" y="110" width="920" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="android" value="Android" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="platforms">
+          <mxGeometry width="220" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ios" value="iOS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="platforms">
+          <mxGeometry x="240" width="220" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="web" value="Web" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="platforms">
+          <mxGeometry x="480" width="220" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="desktop" value="Desktop (Windows/MacOS/Linux)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="platforms">
+          <mxGeometry x="720" width="200" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Application Layer -->
+        <mxCell id="app-layer" value="APPLICATION LAYER" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="310" width="1000" height="180" as="geometry" />
+        </mxCell>
+        
+        <!-- State Management -->
+        <mxCell id="state-mgmt" value="State Management (Provider)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="app-layer">
+          <mxGeometry x="40" y="50" width="280" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Core Features -->
+        <mxCell id="features" value="" style="group" vertex="1" connectable="0" parent="app-layer">
+          <mxGeometry x="40" y="100" width="920" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="auth-module" value="Authentication&#xa;&amp; User Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="features">
+          <mxGeometry width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="report-module" value="Waste Report&#xa;Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="features">
+          <mxGeometry x="160" width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="camera-module" value="Camera &amp;&#xa;Image Processing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="features">
+          <mxGeometry x="320" width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="map-module" value="Maps &amp;&#xa;Geolocation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="features">
+          <mxGeometry x="480" width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="notification-module" value="Push Notifications&#xa;&amp; Alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="features">
+          <mxGeometry x="640" width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="challenge-module" value="Gamification&#xa;&amp; Challenges" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="features">
+          <mxGeometry x="800" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- UI Components -->
+        <mxCell id="ui-components" value="UI Components &amp; Animations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="app-layer">
+          <mxGeometry x="680" y="50" width="280" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Backend Services Layer -->
+        <mxCell id="backend-layer" value="BACKEND SERVICES (Firebase)" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="520" width="1000" height="180" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="firebase-services" value="" style="group" vertex="1" connectable="0" parent="backend-layer">
+          <mxGeometry x="40" y="50" width="920" height="110" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="firebase-auth" value="Authentication&#xa;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="firebase-services">
+          <mxGeometry width="130" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="firestore" value="Cloud Firestore&#xa;(NoSQL Database)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="firebase-services">
+          <mxGeometry x="150" width="130" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="storage" value="Cloud Storage&#xa;(Media Files)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="firebase-services">
+          <mxGeometry x="300" width="130" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="functions" value="Cloud Functions&#xa;(Serverless)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="firebase-services">
+          <mxGeometry x="450" width="130" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="messaging" value="Cloud Messaging&#xa;(FCM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="firebase-services">
+          <mxGeometry x="600" width="130" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hosting" value="Firebase&#xa;Hosting" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="firebase-services">
+          <mxGeometry x="750" width="130" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="functions-lang" value="TypeScript/Node.js Runtime" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="firebase-services">
+          <mxGeometry x="150" y="70" width="620" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Third Party Services -->
+        <mxCell id="third-party-layer" value="THIRD-PARTY INTEGRATIONS" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="730" width="1000" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="third-party-services" value="" style="group" vertex="1" connectable="0" parent="third-party-layer">
+          <mxGeometry x="80" y="50" width="840" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="google-maps" value="Google Maps API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="third-party-services">
+          <mxGeometry width="160" height="35" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="google-places" value="Google Places API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="third-party-services">
+          <mxGeometry x="180" width="160" height="35" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="google-signin" value="Google Sign-In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="third-party-services">
+          <mxGeometry x="360" width="160" height="35" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="geocoding" value="Geocoding Services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="third-party-services">
+          <mxGeometry x="540" width="160" height="35" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="location-svc" value="Location Services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="third-party-services">
+          <mxGeometry x="720" width="120" height="35" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections from Client to App Layer -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="flutter-app" target="app-layer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections from App Layer to Backend -->
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="app-layer" target="backend-layer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections from Backend to Third Party -->
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="backend-layer" target="third-party-layer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Key Features Box -->
+        <mxCell id="features-box" value="KEY CAPABILITIES" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="100" width="300" height="320" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature1" value="• Real-time Waste Tracking" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="30" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature2" value="• Location-based Reporting" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="60" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature3" value="• Image Capture &amp; Upload" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="90" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature4" value="• Push Notifications" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="120" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature5" value="• User Authentication (OAuth)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="150" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature6" value="• Interactive Maps &amp; Navigation" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="180" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature7" value="• Offline Support" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="210" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature8" value="• Community Challenges" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="240" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feature9" value="• Data Analytics &amp; Reporting" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="features-box">
+          <mxGeometry y="270" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Tech Stack Box -->
+        <mxCell id="tech-box" value="TECHNOLOGY STACK" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="450" width="300" height="260" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech1" value="Frontend: Flutter (Dart)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="30" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech2" value="Backend: Firebase Platform" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="60" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech3" value="Functions: TypeScript/Node.js" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="90" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech4" value="Database: Cloud Firestore (NoSQL)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="120" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech5" value="Storage: Firebase Cloud Storage" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="150" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech6" value="State Management: Provider" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="180" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="tech7" value="Maps: Google Maps Platform" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1" vertex="1" parent="tech-box">
+          <mxGeometry y="210" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Architecture Pattern Box -->
+        <mxCell id="pattern-box" value="ARCHITECTURE PATTERN" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="740" width="300" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="pattern1" value="• Layered Architecture" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="pattern-box">
+          <mxGeometry y="30" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="pattern2" value="• Serverless Backend" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="pattern-box">
+          <mxGeometry y="60" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
