@@ -33,7 +33,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   final List<Widget> _screens = [
     HomeScreen(),
     MapScreen(),
-    CameraScreen(),
+    Container(), // Placeholder for camera - will be replaced when tapped
     ChallengesScreen(),
     ProfileScreen(),
   ];
@@ -140,6 +140,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     if (_currentIndex == index) {
       // If tapping the same tab, scroll to top if possible
       _scrollToTop();
+      return;
+    }
+
+    // Handle camera tab separately - open as separate route
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => CameraScreen()),
+      );
       return;
     }
 

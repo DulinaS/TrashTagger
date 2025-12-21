@@ -211,7 +211,22 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ],
           ),
-          child: const Icon(Icons.eco_rounded, size: 40, color: Colors.white),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              'assets/images/App-Logo.png',
+              fit: BoxFit.cover, // This will fill the entire container
+              width: 80,
+              height: 80,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.eco_rounded,
+                  size: 65,
+                  color: AppTheme.primaryEmerald,
+                );
+              },
+            ),
+          ),
         ),
         const SizedBox(height: 24),
 

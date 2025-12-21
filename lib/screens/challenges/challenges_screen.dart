@@ -45,78 +45,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     super.dispose();
   }
 
-  /* Future<void> _loadChallenges() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final userId = authProvider.user?.uid;
-
-      // Load available challenges
-      final availableSnapshot = await FirebaseFirestore.instance
-          .collection('trashReports')
-          .where('status', isEqualTo: 'verified')
-          .orderBy('timestamp', descending: true)
-          .limit(50)
-          .get();
-
-      _availableChallenges = availableSnapshot.docs
-          .map((doc) {
-            try {
-              final data = doc.data();
-              if (data['acceptedBy'] == null && data['reporterId'] != userId) {
-                return TrashReportModel.fromMap({
-                  '_documentId': doc.id,
-                  ...data,
-                });
-              }
-              return null;
-            } catch (e) {
-              print('Error parsing report ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((report) => report != null)
-          .cast<TrashReportModel>()
-          .toList();
-
-      // Load my challenges
-      if (userId != null) {
-        final mySnapshot = await FirebaseFirestore.instance
-            .collection('trashReports')
-            .where('acceptedBy', isEqualTo: userId)
-            .orderBy('acceptedAt', descending: true)
-            .limit(20)
-            .get();
-
-        _myChallenges = mySnapshot.docs
-            .map((doc) {
-              try {
-                return TrashReportModel.fromMap({
-                  '_documentId': doc.id,
-                  ...doc.data(),
-                });
-              } catch (e) {
-                print('Error parsing my challenge ${doc.id}: $e');
-                return null;
-              }
-            })
-            .where((report) => report != null)
-            .cast<TrashReportModel>()
-            .toList();
-      }
-
-      print(
-        'Loaded ${_availableChallenges.length} available, ${_myChallenges.length} my challenges',
-      );
-    } catch (e) {
-      print('Error loading challenges: $e');
-    }
-
-    setState(() => _isLoading = false);
-  }
- */
-
   Future<void> _loadChallenges() async {
     if (!mounted) return; // Check if widget is still mounted
 
@@ -250,44 +178,78 @@ class _ChallengesScreenState extends State<ChallengesScreen>
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryEmerald.withOpacity(0.1),
-                AppTheme.accentPurple.withOpacity(0.05),
+      elevation: 8,
+      shadowColor: AppTheme.accentPurple.withOpacity(0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primaryEmerald.withOpacity(0.2),
+              AppTheme.accentPurple.withOpacity(0.15),
+            ],
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          child: FlexibleSpaceBar(
+            background: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryEmerald.withOpacity(0.2),
+                    AppTheme.accentPurple.withOpacity(0.15),
+                  ],
+                ),
+              ),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.accentPurple, AppTheme.primaryTeal],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.cleaning_services_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    ' Challenges',
+                    style: AppTheme.titleLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
               ],
+            ),
+            titlePadding: const EdgeInsets.only(
+              left: 20,
+              bottom: 16,
+              right: 70,
             ),
           ),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.accentPurple, AppTheme.primaryTeal],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.cleaning_services_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Cleanup Challenges',
-              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
       actions: [
         Padding(

@@ -232,44 +232,91 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryEmerald.withOpacity(0.1),
-                AppTheme.accentPurple.withOpacity(0.05),
-              ],
+      elevation: 8,
+      shadowColor: AppTheme.primaryTeal.withOpacity(0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Calculate the current scroll percentage
+          final double top = constraints.biggest.height;
+          final double expandedHeight = 120;
+          final double collapsedHeight =
+              kToolbarHeight + MediaQuery.of(context).padding.top;
+          final double scrollPercentage =
+              ((top - collapsedHeight) / (expandedHeight - collapsedHeight))
+                  .clamp(0.0, 1.0);
+
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.primaryEmerald.withOpacity(0.2),
+                  AppTheme.accentPurple.withOpacity(0.15),
+                ],
+              ),
             ),
-          ),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primaryTeal, AppTheme.accentPurple],
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+              child: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.primaryEmerald.withOpacity(0.2),
+                        AppTheme.accentPurple.withOpacity(0.15),
+                      ],
+                    ),
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.assignment_rounded,
-                color: Colors.white,
-                size: 20,
+                title: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppTheme.primaryTeal, AppTheme.accentPurple],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.assignment_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        'Report Details',
+                        style: AppTheme.titleLarge.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                titlePadding: EdgeInsets.only(
+                  left: scrollPercentage > 0.5 ? 20 : 72,
+                  bottom: scrollPercentage > 0.5 ? 16 : 12,
+                  right: 70,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Report Details',
-              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+          );
+        },
       ),
       actions: [
         Padding(

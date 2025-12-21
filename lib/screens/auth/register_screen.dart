@@ -97,7 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       child: _buildHeader(),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
 
                     // Registration Form
                     SlideInAnimation(

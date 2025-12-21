@@ -746,44 +746,78 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryEmerald.withOpacity(0.1),
-                AppTheme.primaryTeal.withOpacity(0.05),
+      elevation: 8,
+      shadowColor: AppTheme.primaryTeal.withOpacity(0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primaryEmerald.withOpacity(0.2),
+              AppTheme.primaryTeal.withOpacity(0.15),
+            ],
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          child: FlexibleSpaceBar(
+            background: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryEmerald.withOpacity(0.2),
+                    AppTheme.primaryTeal.withOpacity(0.15),
+                  ],
+                ),
+              ),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primaryTeal, AppTheme.infoBlue],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.location_searching_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    widget.title,
+                    style: AppTheme.titleLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
               ],
+            ),
+            titlePadding: const EdgeInsets.only(
+              left: 72,
+              bottom: 16,
+              right: 20,
             ),
           ),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primaryTeal, AppTheme.infoBlue],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.location_searching_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              widget.title,
-              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
     );
   }

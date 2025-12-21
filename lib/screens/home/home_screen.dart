@@ -325,53 +325,77 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
+      elevation: 8,
+      shadowColor: AppTheme.primaryEmerald.withOpacity(0.5),
       automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryEmerald.withOpacity(0.1),
-                AppTheme.accentPurple.withOpacity(0.05),
-              ],
-            ),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primaryEmerald.withOpacity(0.2),
+              AppTheme.accentPurple.withOpacity(0.15),
+            ],
           ),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          child: FlexibleSpaceBar(
+            background: Container(
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.eco_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppTheme.primaryGradient.createShader(bounds),
-                child: Text(
-                  'TrashTagger',
-                  style: AppTheme.titleLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryEmerald.withOpacity(0.2),
+                    AppTheme.accentPurple.withOpacity(0.15),
+                  ],
                 ),
               ),
             ),
-          ],
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.eco_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) =>
+                        AppTheme.primaryGradient.createShader(bounds),
+                    child: Text(
+                      'TrashTagger',
+                      style: AppTheme.titleLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+          ),
         ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
       actions: [
         // Notification button with modern badge

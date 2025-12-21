@@ -167,42 +167,89 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.accentAmber.withOpacity(0.1),
-                AppTheme.warningAmber.withOpacity(0.05),
-              ],
-            ),
-          ),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppTheme.warningGradient,
-                borderRadius: BorderRadius.circular(12),
+      elevation: 8,
+      shadowColor: AppTheme.accentAmber.withOpacity(0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Calculate the current scroll percentage
+          final double top = constraints.biggest.height;
+          final double expandedHeight = 120;
+          final double collapsedHeight =
+              kToolbarHeight + MediaQuery.of(context).padding.top;
+          final double scrollPercentage =
+              ((top - collapsedHeight) / (expandedHeight - collapsedHeight))
+                  .clamp(0.0, 1.0);
+
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
               ),
-              child: const Icon(
-                Icons.leaderboard_rounded,
-                color: Colors.white,
-                size: 20,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.accentAmber.withOpacity(0.2),
+                  AppTheme.warningAmber.withOpacity(0.15),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Leaderboard',
-              style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.w700),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+              child: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.accentAmber.withOpacity(0.2),
+                        AppTheme.warningAmber.withOpacity(0.15),
+                      ],
+                    ),
+                  ),
+                ),
+                title: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.warningGradient,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.leaderboard_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        'Leaderboard',
+                        style: AppTheme.titleLarge.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                titlePadding: EdgeInsets.only(
+                  left: scrollPercentage > 0.5 ? 20 : 72,
+                  bottom: scrollPercentage > 0.5 ? 16 : 12,
+                  right: 70,
+                ),
+              ),
             ),
-          ],
-        ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+          );
+        },
       ),
       actions: [
         Padding(

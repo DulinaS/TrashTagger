@@ -101,55 +101,83 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.accentAmber.withOpacity(0.1),
-                AppTheme.accentCoral.withOpacity(0.05),
+      elevation: 8,
+      shadowColor: AppTheme.accentCoral.withOpacity(0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.accentAmber.withOpacity(0.2),
+              AppTheme.accentCoral.withOpacity(0.15),
+            ],
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          child: FlexibleSpaceBar(
+            background: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.accentAmber.withOpacity(0.2),
+                    AppTheme.accentCoral.withOpacity(0.15),
+                  ],
+                ),
+              ),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.accentCoral, AppTheme.accentAmber],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [AppTheme.accentCoral, AppTheme.accentAmber],
+                    ).createShader(bounds),
+                    child: Text(
+                      'Notifications',
+                      style: AppTheme.titleLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
               ],
+            ),
+            titlePadding: const EdgeInsets.only(
+              left: 72,
+              bottom: 16,
+              right: 100,
             ),
           ),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.accentCoral, AppTheme.accentAmber],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.notifications_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: [AppTheme.accentCoral, AppTheme.accentAmber],
-                ).createShader(bounds),
-                child: Text(
-                  'Notifications',
-                  style: AppTheme.titleLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
-        ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
       actions: [
         if (unreadCount > 0)

@@ -163,115 +163,136 @@ class _ProfileScreenState extends State<ProfileScreen>
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.backgroundPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
-          child: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                30,
-                20,
-                20,
-              ), // Adjusted padding
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min, // FIXED: Use min size
-                children: [
-                  // Profile Avatar with Animation
-                  AnimatedBuilder(
-                    animation: _avatarController,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: 1.0 + (_avatarController.value * 0.05),
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 15,
-                                offset: const Offset(0, 6),
+      elevation: 8,
+      shadowColor: AppTheme.primaryEmerald.withOpacity(0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          gradient: AppTheme.primaryGradient,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          child: FlexibleSpaceBar(
+            background: Container(
+              decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    30,
+                    20,
+                    20,
+                  ), // Adjusted padding
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min, // FIXED: Use min size
+                    children: [
+                      // Profile Avatar with Animation
+                      AnimatedBuilder(
+                        animation: _avatarController,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: 1.0 + (_avatarController.value * 0.05),
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: user.photoURL != null
-                                ? Image.network(
-                                    user.photoURL!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            _buildDefaultAvatar(user.name),
-                                  )
-                                : _buildDefaultAvatar(user.name),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 10), // Reduced spacing
-                  // User Name
-                  Text(
-                    user.name,
-                    style: AppTheme.headlineLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 22,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6), // Reduced spacing
-                  // Level and Points Badge
-                  Container(
-                    constraints: BoxConstraints(maxWidth: 280),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 27,
-                      vertical: 2, // Reduced padding
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(
-                        18,
-                      ), // Slightly reduced
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.star_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ), // Smaller icon
-                        const SizedBox(width: 4), // Reduced spacing
-                        Flexible(
-                          child: Text(
-                            'Level ${user.level} • ${Helpers.formatPoints(user.totalPoints)} pts',
-                            style: AppTheme.labelLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12, // Smaller font
+                              child: ClipOval(
+                                child: user.photoURL != null
+                                    ? Image.network(
+                                        user.photoURL!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                _buildDefaultAvatar(user.name),
+                                      )
+                                    : _buildDefaultAvatar(user.name),
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10), // Reduced spacing
+                      // User Name
+                      Text(
+                        user.name,
+                        style: AppTheme.headlineLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 22,
                         ),
-                      ],
-                    ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6), // Reduced spacing
+                      // Level and Points Badge
+                      Container(
+                        constraints: BoxConstraints(maxWidth: 280),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 27,
+                          vertical: 2, // Reduced padding
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(
+                            18,
+                          ), // Slightly reduced
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.star_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ), // Smaller icon
+                            const SizedBox(width: 4), // Reduced spacing
+                            Flexible(
+                              child: Text(
+                                'Level ${user.level} • ${Helpers.formatPoints(user.totalPoints)} pts',
+                                style: AppTheme.labelLarge.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12, // Smaller font
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
+            // REMOVED: title parameter since you don't want the 'Profile' title
+            collapseMode:
+                CollapseMode.parallax, // Changed since no title to pin
           ),
         ),
-        // REMOVED: title parameter since you don't want the 'Profile' title
-        collapseMode: CollapseMode.parallax, // Changed since no title to pin
       ),
       actions: [
         Padding(
@@ -757,7 +778,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 crossAxisCount: 4,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 0.9,
+                childAspectRatio: 0.75,
               ),
               itemCount: user.badges.length > 8 ? 8 : user.badges.length,
               itemBuilder: (context, index) {
