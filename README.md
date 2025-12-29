@@ -2,6 +2,7 @@
 
 TrashTagger is a mobile application that gamifies environmental cleanup by enabling users to report littered areas, accept cleanup challenges, and earn rewards. Built with Flutter and powered by Firebase with Google Cloud Vision AI.
 
+- [Click To View The Admin Panel](https://trashtagger-admin-panel.vercel.app)
 ---
 
 ## ✨ Key Features
